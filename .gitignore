@@ -1,0 +1,33 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+test_build.exe
+
+# Environment
+.env
+.env.*
+
+# Node
+node_modules/
+dist/
+.next/
+out/
+build/
+.swc/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+demo_recording.webp
+fixed_animations_demo_*.webp
+website_preview_*.webp
+*.webp
