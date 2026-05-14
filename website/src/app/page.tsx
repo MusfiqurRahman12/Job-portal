@@ -383,7 +383,7 @@ export default function Home() {
             <a href="#jobs" className="nav-link">Browse Jobs</a>
             <a href="#categories" className="nav-link">Categories</a>
             <a href="#" className="nav-link">Companies</a>
-            <a href="#" className="nav-link">Blog</a>
+            <a href="/blog" className="nav-link">Blog</a>
             <a href="#" className="nav-cta">Post a Job</a>
           </div>
         </div>
