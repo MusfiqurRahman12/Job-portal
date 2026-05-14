@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { fetchJobById, Job, getHoursLeft } from "@/lib/api";
 import Link from "next/link";
-import ReactMarkdown from 'react-markdown'; // We'll need to install this, or just use dangerouslySetInnerHTML
 
 export default function JobDetailPage({ params }: { params: { id: string } }) {
   const [job, setJob] = useState<Job | null>(null);
