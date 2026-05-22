@@ -27,19 +27,19 @@ func (r *RemoteOKScraper) Name() string {
 
 // remoteOKJob represents the JSON structure returned by RemoteOK's API
 type remoteOKJob struct {
-	Slug        string   `json:"slug"`
-	ID          string   `json:"id"`
-	Epoch       string   `json:"epoch"`
-	Date        string   `json:"date"`
-	Company     string   `json:"company"`
-	CompanyLogo string   `json:"company_logo"`
-	Position    string   `json:"position"`
-	Tags        []string `json:"tags"`
-	Description string   `json:"description"`
-	Location    string   `json:"location"`
-	SalaryMin   int      `json:"salary_min"`
-	SalaryMax   int      `json:"salary_max"`
-	URL         string   `json:"url"`
+	Slug        string          `json:"slug"`
+	ID          json.Number     `json:"id"`
+	Epoch       json.Number     `json:"epoch"`
+	Date        string          `json:"date"`
+	Company     string          `json:"company"`
+	CompanyLogo string          `json:"company_logo"`
+	Position    string          `json:"position"`
+	Tags        []string        `json:"tags"`
+	Description string          `json:"description"`
+	Location    string          `json:"location"`
+	SalaryMin   int             `json:"salary_min"`
+	SalaryMax   int             `json:"salary_max"`
+	URL         string          `json:"url"`
 }
 
 func (r *RemoteOKScraper) Crawl() ([]shared.Job, error) {

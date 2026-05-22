@@ -74,3 +74,37 @@ export async function fetchJobById(id: string): Promise<Job> {
   if (!res.ok) throw new Error("Failed to fetch job");
   return res.json();
 }
+
+export interface News {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  image: string;
+  author: string;
+  url: string;
+  published_at: string;
+  created_at: string;
+}
+
+export interface NewsResponse {
+  news: News[];
+  count: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchNews(limit = 10, offset = 0): Promise<NewsResponse> {
+  const res = await fetch(`${API_URL}/api/news?limit=${limit}&offset=${offset}`);
+  if (!res.ok) throw new Error("Failed to fetch news articles");
+  return res.json();
+}
+
+export async function fetchNewsBySlug(slug: string): Promise<News> {
+  const res = await fetch(`${API_URL}/api/news/${slug}`);
+  if (!res.ok) throw new Error(`Failed to fetch news article: ${slug}`);
+  return res.json();
+}
+

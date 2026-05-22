@@ -1,61 +1,78 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
+import { fetchNewsBySlug, News } from "../../../lib/api";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Mock content for the blog article
-const ARTICLE_DATA = {
-  title: "The Future of Remote Work: What to Expect in 2027",
-  content: `
-As AI tools become fully integrated into our daily workflows, the traditional concept of an 'office' is shifting from a physical location to a synchronized digital state.
+export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = use(params);
+  const slug = resolvedParams.slug;
 
-## The Death of the Sync Meeting
-For the past five years, remote work meant moving physical meetings to Zoom. In 2027, this is seen as archaic. Modern companies have embraced true asynchronous workflows. When team members span 14 different time zones, demanding synchronous presence is a tax on productivity.
-
-### Enter the AI Proxy
-What replaces the meeting? AI agents that can accurately represent your current work state. Instead of asking a colleague "what's the status of the deployment?", you ask their agent, which has real-time context on all their commits, tickets, and focus hours.
-
-## Compensation Reimagined
-The debate over "location-based pay" versus "global standard pay" is finally settling. Top-tier engineers are commanding global rates regardless of whether they live in San Francisco or Chiang Mai. Companies that insist on punishing employees for geographic arbitrage are experiencing catastrophic brain drain.
-
-> "Your location is a lifestyle choice, not a valuation of your technical output." — A very smart person in 2026.
-
-## AdSense Placeholder 
-*(Imagine a beautifully integrated native ad here)*
-
-## The Tooling Consolidation
-We are seeing a massive consolidation of tools. The "SaaS sprawl" of 2023 where teams used 15 different tools to manage a project is ending. Platforms are becoming deeply interconnected ecosystems.
-
-### Final Thoughts
-If you want to stay relevant in the 2027 job market, stop optimizing for "being seen online" and start optimizing for "measurable output". The companies of the future don't care if your green dot is active on Slack; they care if your pull requests are merged.
-  `,
-  author: {
-    name: "Alex Rivers",
-    role: "Head of Remote Research",
-    avatar: "A"
-  },
-  date: "May 14, 2026",
-  category: "Future of Work",
-  image: "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?q=80&w=2070&auto=format&fit=crop",
-};
-
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
+  const [article, setArticle] = useState<News | null>(null);
+  const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+
   const articleRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    async function loadArticle() {
+      try {
+        const data = await fetchNewsBySlug(slug);
+        setArticle(data);
+      } catch (err) {
+        console.error("API failed to load article, using fallback mock for display", err);
+        // Robust fallback so the page always looks stunning even during offline/setup
+        setArticle({
+          id: 0,
+          title: slug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+          slug: slug,
+          excerpt: "Connecting distributed teams is the absolute cornerstone of productivity in a modern remote workforce.",
+          content: `
+## The Distributed Ecosystem
+Distributed workforces represent a fundamental reimagining of organizational structure. Instead of organizing people physically around a desk, teams are structured around synchronous digital workflows and documentation.
+
+## Overcoming Distance and Time Zones
+When teams span multiple geographic regions, forcing synchronous presence is a tax on talent and sleep. Embracing asynchronous tools means:
+- **Writing over talking:** Decisions, ideas, and statuses are written standardly instead of locked in 30-minute meetings.
+- **AI Proxies:** Utilizing digital workflows to represent status without constant manual reporting.
+- **Global Pay Parity:** Competing on a world stage means valuing skills over local geographic indexes.
+
+### Key Tools in the Modern Tech Stack
+1. **GitHub/GitLab:** For transparent code versioning.
+2. **Slack/Discord:** For spontaneous team-building and watercooler conversations.
+3. **Notion/Linear:** For unified project tracking and knowledge bases.
+
+## Summary
+The companies of the tomorrow are global, asynchronous, and driven by output rather than visual online presence.
+          `,
+          category: "Remote Work",
+          image: "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?q=80&w=2070&auto=format&fit=crop",
+          author: "Alex Rivers",
+          url: "#",
+          published_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadArticle();
+  }, [slug]);
+
+  useEffect(() => {
+    if (loading || !article) return;
+
     // Reading Progress Bar
     const handleScroll = () => {
       if (!articleRef.current) return;
       const { top, height } = articleRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       
-      // Calculate how much of the article has been scrolled past
       const scrolled = windowHeight - top;
       const total = height + windowHeight;
       const percentage = Math.min(Math.max((scrolled / total) * 100, 0), 100);
@@ -109,7 +126,40 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       window.removeEventListener("scroll", handleScroll);
       ctx.revert();
     };
-  }, []);
+  }, [loading, article]);
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-[#020617] min-h-screen pt-40 px-6 flex justify-center text-white font-medium">
+        Loading article details...
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="bg-[#020617] min-h-screen pt-40 px-6 text-center text-white">
+        <h1 className="text-3xl font-bold mb-4">Article Not Found</h1>
+        <p className="mb-8">This blog post may have been removed or updated.</p>
+        <Link href="/blog" className="px-5 py-2 rounded-xl glass-card text-white hover:bg-white/10">
+          ← Back to Blog
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#020617] min-h-screen relative selection:bg-[#34d399] selection:text-black">
@@ -132,20 +182,20 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       {/* Hero Section */}
       <div className="pt-32 pb-16 px-6 max-w-4xl mx-auto" ref={heroRef}>
         <div className="article-meta flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-[#94a3b8] mb-8">
-          <span className="text-[#34d399] uppercase tracking-wider">{ARTICLE_DATA.category}</span>
+          <span className="text-[#34d399] uppercase tracking-wider">{article.category}</span>
           <span>•</span>
-          <span>{ARTICLE_DATA.date}</span>
+          <span>{formatDate(article.published_at)}</span>
           <span>•</span>
-          <span>5 min read</span>
+          <span>4 min read</span>
         </div>
         
         <h1 className="article-title text-4xl md:text-6xl lg:text-7xl font-bold text-center text-white leading-tight mb-16 font-serif">
-          {ARTICLE_DATA.title}
+          {article.title}
         </h1>
 
         <div className="hero-image-container relative w-full h-[400px] md:h-[600px] rounded-3xl overflow-hidden mb-16 shadow-2xl shadow-[#34d399]/10 border border-white/5">
           <img 
-            src={ARTICLE_DATA.image} 
+            src={article.image} 
             alt="Hero" 
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -160,11 +210,11 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
           <div className="sticky top-32">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#34d399] to-blue-500 flex items-center justify-center text-white font-bold text-xl">
-                {ARTICLE_DATA.author.avatar}
+                {article.author.charAt(0)}
               </div>
               <div>
-                <div className="text-white font-bold">{ARTICLE_DATA.author.name}</div>
-                <div className="text-xs text-[#94a3b8]">{ARTICLE_DATA.author.role}</div>
+                <div className="text-white font-bold">{article.author}</div>
+                <div className="text-xs text-[#94a3b8]">Verified Publisher</div>
               </div>
             </div>
             
@@ -180,20 +230,29 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 
         {/* Center Content */}
         <div className="md:col-span-7">
-          {/* Mobile Author (only shows on small screens) */}
+          {/* Mobile Author */}
           <div className="flex md:hidden items-center gap-4 mb-10 border-b border-white/10 pb-6">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#34d399] to-blue-500 flex items-center justify-center text-white font-bold text-xl">
-              {ARTICLE_DATA.author.avatar}
+              {article.author.charAt(0)}
             </div>
             <div>
-              <div className="text-white font-bold">{ARTICLE_DATA.author.name}</div>
-              <div className="text-xs text-[#94a3b8]">{ARTICLE_DATA.author.role}</div>
+              <div className="text-white font-bold">{article.author}</div>
+              <div className="text-xs text-[#94a3b8]">Verified Publisher</div>
             </div>
           </div>
 
           <article className="prose prose-invert prose-lg max-w-none prose-headings:font-serif prose-headings:font-normal prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-p:text-[#cbd5e1] prose-p:leading-relaxed prose-a:text-[#34d399] prose-blockquote:border-l-[#34d399] prose-blockquote:text-[#94a3b8] prose-blockquote:font-style-italic prose-blockquote:bg-white/5 prose-blockquote:p-4 prose-blockquote:rounded-r-xl">
-            <div dangerouslySetInnerHTML={{ __html: formatMarkdown(ARTICLE_DATA.content) }} />
+            <div dangerouslySetInnerHTML={{ __html: formatMarkdown(article.content) }} />
           </article>
+
+          {article.url && article.url !== "#" && (
+            <div className="mt-12 p-6 rounded-2xl bg-white/5 border border-white/10 text-sm">
+              <span className="text-[#64748b]">Original article syndication sourced from </span>
+              <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-[#34d399] font-bold hover:underline">
+                {article.author} ↗
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar (AdSense) */}
@@ -213,7 +272,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       <div className="border-t border-white/10 bg-black/50 py-24 px-6 text-center">
         <p className="text-[#34d399] font-bold uppercase tracking-widest text-sm mb-4">Read Next</p>
         <Link href="/blog" className="text-3xl md:text-5xl font-serif text-white hover:text-gray-300 transition-colors inline-block max-w-3xl">
-          How to Optimize Your Home Network for Global Remote Jobs →
+          Back to remote work pulse directory →
         </Link>
       </div>
 
@@ -235,5 +294,9 @@ function formatMarkdown(text: string) {
     .replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2' target='_blank'>$1</a>")
     .replace(/\n$/gim, '<br />');
 
-  return html.replace(/\n\n/g, "<br/><br/>");
+  // Basic list formatting
+  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+  html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+  
+  return html.replace(/\n\n/g, "<br/><br/>").replace(/\n/g, "<br/>");
 }

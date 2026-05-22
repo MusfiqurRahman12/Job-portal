@@ -12,18 +12,20 @@ type Scraper interface {
 	Crawl() ([]shared.Job, error)
 }
 
-// Engine manages the execution of multiple scrapers
+// Engine manages the execution of multiple scrapers (jobs and news)
 type Engine struct {
-	scrapers  []Scraper
-	db        *DB
-	aiService *AIService
+	scrapers     []Scraper
+	newsScrapers []NewsScraper
+	db           *DB
+	aiService    *AIService
 }
 
 func NewEngine(db *DB, aiService *AIService) *Engine {
 	return &Engine{
-		scrapers:  []Scraper{},
-		db:        db,
-		aiService: aiService,
+		scrapers:     []Scraper{},
+		newsScrapers: []NewsScraper{},
+		db:           db,
+		aiService:    aiService,
 	}
 }
 
@@ -31,19 +33,24 @@ func (e *Engine) AddScraper(s Scraper) {
 	e.scrapers = append(e.scrapers, s)
 }
 
+func (e *Engine) AddNewsScraper(ns NewsScraper) {
+	e.newsScrapers = append(e.newsScrapers, ns)
+}
+
 func (e *Engine) Run() {
 	var wg sync.WaitGroup
-	jobChan := make(chan shared.Job, 100)
+	jobChan := make(chan shared.Job, 200)
+	newsChan := make(chan shared.News, 100)
 
-	// Start scrapers concurrently
+	// Start job scrapers concurrently
 	for _, s := range e.scrapers {
 		wg.Add(1)
 		go func(sc Scraper) {
 			defer wg.Done()
-			log.Printf("Starting scraper: %s", sc.Name())
+			log.Printf("Starting job scraper: %s", sc.Name())
 			jobs, err := sc.Crawl()
 			if err != nil {
-				log.Printf("Error in scraper %s: %v", sc.Name(), err)
+				log.Printf("Error in job scraper %s: %v", sc.Name(), err)
 				return
 			}
 			for _, job := range jobs {
@@ -52,24 +59,73 @@ func (e *Engine) Run() {
 		}(s)
 	}
 
-	// Closer goroutine
+	// Start news scrapers concurrently
+	for _, ns := range e.newsScrapers {
+		wg.Add(1)
+		go func(nsc NewsScraper) {
+			defer wg.Done()
+			log.Printf("Starting news scraper: %s", nsc.Name())
+			articles, err := nsc.CrawlNews()
+			if err != nil {
+				log.Printf("Error in news scraper %s: %v", nsc.Name(), err)
+				return
+			}
+			// Only take the first 10 articles per RSS feed to keep runs fast and avoid API key exhaustion
+			limit := 10
+			if len(articles) < limit {
+				limit = len(articles)
+			}
+			for i := 0; i < limit; i++ {
+				newsChan <- articles[i]
+			}
+		}(ns)
+	}
+
+	// Closer goroutine — signals both channels when all scrapers finish fetching
 	go func() {
 		wg.Wait()
 		close(jobChan)
+		close(newsChan)
 	}()
 
-	// Job processor
-	for job := range jobChan {
-		e.processJob(job)
-	}
+	// Process jobs and news CONCURRENTLY in separate goroutines
+	// This prevents slow news AI calls from blocking job saves
+	var processingWg sync.WaitGroup
+
+	// Goroutine 1: Process all job listings (AI only for first 3, rest saved as-is)
+	processingWg.Add(1)
+	go func() {
+		defer processingWg.Done()
+		optCount := 0
+		for job := range jobChan {
+			optimize := false
+			if false { // Temporarily disable to bypass quota
+				optimize = true
+				optCount++
+			}
+			e.processJob(job, optimize)
+		}
+	}()
+
+	// Goroutine 2: Process all news articles (with AI if quota available, skip if already in DB)
+	processingWg.Add(1)
+	go func() {
+		defer processingWg.Done()
+		for art := range newsChan {
+			e.processNews(art)
+		}
+	}()
+
+	// Wait for both processing pipelines to complete
+	processingWg.Wait()
 }
 
-func (e *Engine) processJob(job shared.Job) {
-	// 1. AI Content Optimization
-	if e.aiService != nil {
+func (e *Engine) processJob(job shared.Job, optimize bool) {
+	// 1. AI Content Optimization (only for first 3 jobs per run)
+	if optimize && e.aiService != nil {
 		err := e.aiService.OptimizeJob(&job)
 		if err != nil {
-			log.Printf("AI Optimization failed for %s: %v", job.Title, err)
+			log.Printf("AI Optimization failed for job %s: %v", job.Title, err)
 		}
 	}
 
@@ -82,3 +138,31 @@ func (e *Engine) processJob(job shared.Job) {
 
 	log.Printf("Saved job: [%s] at %s from %s", job.Title, job.Company, job.Source)
 }
+
+func (e *Engine) processNews(art shared.News) {
+	// Skip AI optimization if article already exists in DB (avoids burning quota on duplicates)
+	art.GenerateSlug()
+	if existing, _ := e.db.GetNewsBySlug(art.Slug); existing.ID > 0 {
+		log.Printf("[News] Skipping already-indexed article: %s", art.Title)
+		return
+	}
+
+	// 1. AI Content Optimization (re-writing, category mapping, excerpts)
+	if e.aiService != nil {
+		err := e.aiService.OptimizeNews(&art)
+		if err != nil {
+			log.Printf("AI Optimization failed for news article %s: %v", art.Title, err)
+			return // Don't save unoptimized news — it needs AI rewriting for quality
+		}
+	}
+
+	// 2. Save to Database
+	err := e.db.SaveNews(art)
+	if err != nil {
+		log.Printf("Error saving news article %s: %v", art.Title, err)
+		return
+	}
+
+	log.Printf("Saved news article: [%s] Category: %s from %s", art.Title, art.Category, art.Author)
+}
+

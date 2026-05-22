@@ -41,6 +41,8 @@ func (s *APIServer) Start() {
 	mux.HandleFunc("/api/jobs", corsMiddleware(s.handleGetJobs))
 	mux.HandleFunc("/api/jobs/count", corsMiddleware(s.handleGetJobCount))
 	mux.HandleFunc("/api/jobs/categories", corsMiddleware(s.handleGetCategories))
+	mux.HandleFunc("/api/news/", corsMiddleware(s.handleNewsBySlug)) // Catch all for /api/news/{slug}
+	mux.HandleFunc("/api/news", corsMiddleware(s.handleGetNews))
 	mux.HandleFunc("/api/health", corsMiddleware(s.handleHealth))
 
 	log.Printf("🌐 API Server running on http://localhost:%s", s.port)
@@ -130,5 +132,55 @@ func (s *APIServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GET /api/news?limit=10&offset=0
+func (s *APIServer) handleGetNews(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	offset, _ := strconv.Atoi(q.Get("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+
+	newsList, err := s.db.GetNews(limit, offset)
+	if err != nil {
+		log.Printf("Error fetching news: %v", err)
+		http.Error(w, `{"error":"failed to fetch news"}`, http.StatusInternalServerError)
+		return
+	}
+
+	count, _ := s.db.GetNewsCount()
+
+	resp := map[string]interface{}{
+		"news":   newsList,
+		"count":  count,
+		"limit":  limit,
+		"offset": offset,
+	}
+
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GET /api/news/{slug}
+func (s *APIServer) handleNewsBySlug(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/api/news/")
+	if path == "" {
+		return
+	}
+
+	newsItem, err := s.db.GetNewsBySlug(path)
+	if err != nil {
+		http.Error(w, `{"error":"news article not found"}`, http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(newsItem)
+}
+
 // Ignore unused import warning — strings is used in db queries
 var _ = strings.ToLower
+

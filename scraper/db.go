@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"job-portal-crawler/shared"
 	"log"
+	"os"
 	"time"
 
 	"github.com/lib/pq"
@@ -247,3 +248,109 @@ func (db *DB) runCleanup() {
 func (db *DB) Close() {
 	db.conn.Close()
 }
+
+// InitSchema loads schema.sql and runs it on the database connection
+func (db *DB) InitSchema() error {
+	schemaBytes, err := os.ReadFile("scraper/schema.sql")
+	if err != nil {
+		// Try fallback relative path
+		schemaBytes, err = os.ReadFile("schema.sql")
+		if err != nil {
+			return fmt.Errorf("failed to read schema.sql: %w", err)
+		}
+	}
+
+	_, err = db.conn.Exec(string(schemaBytes))
+	if err != nil {
+		return fmt.Errorf("failed to execute schema.sql: %w", err)
+	}
+
+	log.Println("✨ Database schema successfully initialized (jobs and news tables)")
+	return nil
+}
+
+// SaveNews inserts or updates a crawled and AI-rewritten news article
+func (db *DB) SaveNews(n shared.News) error {
+	if n.Slug == "" {
+		n.GenerateSlug()
+	}
+	n.AssignFallbackImage()
+
+	query := `
+		INSERT INTO news (title, slug, excerpt, content, category, image, author, url, published_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (url) DO UPDATE SET
+			title = EXCLUDED.title,
+			slug = EXCLUDED.slug,
+			excerpt = EXCLUDED.excerpt,
+			content = EXCLUDED.content,
+			category = EXCLUDED.category,
+			image = EXCLUDED.image,
+			author = EXCLUDED.author,
+			published_at = EXCLUDED.published_at
+	`
+	_, err := db.conn.Exec(query,
+		n.Title,
+		n.Slug,
+		n.Excerpt,
+		n.Content,
+		n.Category,
+		n.Image,
+		n.Author,
+		n.URL,
+		n.PublishedAt,
+	)
+	return err
+}
+
+// GetNews returns latest published news articles
+func (db *DB) GetNews(limit, offset int) ([]shared.News, error) {
+	query := `
+		SELECT id, title, slug, excerpt, content, category, image, author, url, published_at, created_at
+		FROM news
+		ORDER BY published_at DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := db.conn.Query(query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var articles []shared.News
+	for rows.Next() {
+		var n shared.News
+		err := rows.Scan(
+			&n.ID, &n.Title, &n.Slug, &n.Excerpt, &n.Content, &n.Category,
+			&n.Image, &n.Author, &n.URL, &n.PublishedAt, &n.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		articles = append(articles, n)
+	}
+	return articles, nil
+}
+
+// GetNewsBySlug returns a single news article by its slug
+func (db *DB) GetNewsBySlug(slug string) (shared.News, error) {
+	query := `
+		SELECT id, title, slug, excerpt, content, category, image, author, url, published_at, created_at
+		FROM news
+		WHERE slug = $1
+	`
+	var n shared.News
+	err := db.conn.QueryRow(query, slug).Scan(
+		&n.ID, &n.Title, &n.Slug, &n.Excerpt, &n.Content, &n.Category,
+		&n.Image, &n.Author, &n.URL, &n.PublishedAt, &n.CreatedAt,
+	)
+	return n, err
+}
+
+// GetNewsCount returns total number of news articles
+func (db *DB) GetNewsCount() (int, error) {
+	var count int
+	err := db.conn.QueryRow("SELECT COUNT(*) FROM news").Scan(&count)
+	return count, err
+}
+

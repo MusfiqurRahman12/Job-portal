@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { fetchJobById, Job, getHoursLeft } from "@/lib/api";
 import Link from "next/link";
 
-export default function JobDetailPage({ params }: { params: { id: string } }) {
+export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,13 +14,13 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     async function loadJob() {
       try {
-        const data = await fetchJobById(params.id);
+        const data = await fetchJobById(id);
         setJob(data);
       } catch (err) {
         // Fallback for demo
         console.error("API failed, using mock data for demo", err);
         setJob({
-          id: params.id,
+          id: id,
           title: "Mock AI/ML Engineer",
           company: "Demo Corp",
           company_logo: "D",
@@ -40,7 +42,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
       }
     }
     loadJob();
-  }, [params.id]);
+  }, [id]);
 
   if (loading) {
     return (

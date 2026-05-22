@@ -29,6 +29,12 @@ func main() {
 	}
 	defer db.Close()
 
+	// Automatically run database migrations/schema updates
+	err = db.InitSchema()
+	if err != nil {
+		log.Fatalf("Failed to initialize database schema: %v", err)
+	}
+
 	// Start background cleanup scheduler (deactivates expired jobs every hour)
 	stopCleanup := make(chan struct{})
 	db.StartCleanupScheduler(stopCleanup)
@@ -63,11 +69,15 @@ func main() {
 func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine := scraper.NewEngine(db, aiService)
 
-	// Register all scrapers — each runs concurrently via goroutines
+	// Register all job scrapers — each runs concurrently via goroutines
 	engine.AddScraper(scraper.NewWWRScraper())
 	engine.AddScraper(scraper.NewRemoteOKScraper())
 	// engine.AddScraper(scraper.NewGreenhouseScraper())  // TODO
 	// engine.AddScraper(scraper.NewIndeedScraper())      // TODO
+
+	// Register all news/blog RSS scrapers
+	engine.AddNewsScraper(scraper.NewRSSScraper("Sorry I Was On Mute", "https://sorryonmute.com/feed/"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("TechCrunch", "https://techcrunch.com/feed/"))
 
 	engine.Run()
 	log.Println("✅ Scrape cycle complete")

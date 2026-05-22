@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRouter } from "next/navigation";
 import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount } from "@/lib/api";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -69,18 +70,7 @@ const JOBS = [
     hoursLeft: 8,
     color: "#f59e0b",
   },
-  {
-    id: 5,
-    title: "Staff Platform Engineer",
-    company: "Stripe",
-    location: "Remote Worldwide",
-    salary: "$200k – $300k",
-    category: "Engineering",
-    tags: ["Go", "Kubernetes", "AWS"],
-    remote_type: "worldwide",
-    hoursLeft: 4,
-    color: "#6366f1",
-  },
+
   {
     id: 6,
     title: "Senior DevOps Engineer",
@@ -127,6 +117,7 @@ function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
    ═══════════════════════════════════════════════════════ */
 
 export default function Home() {
+  const router = useRouter();
   const heroRef = useRef<HTMLDivElement>(null);
   const tickerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
@@ -380,7 +371,7 @@ export default function Home() {
             Remote<span>Hub</span>
           </a>
           <div className="nav-links">
-            <a href="#jobs" className="nav-link">Browse Jobs</a>
+            <a href="/jobs" className="nav-link">Browse Jobs</a>
             <a href="#categories" className="nav-link">Categories</a>
             <a href="#" className="nav-link">Companies</a>
             <a href="/blog" className="nav-link">Blog</a>
@@ -420,17 +411,21 @@ export default function Home() {
           </p>
 
           {/* Search */}
-          <div className="search-container w-full mb-8">
+          <form className="search-container w-full mb-8" onSubmit={(e) => {
+            e.preventDefault();
+            const val = (document.getElementById("search-input") as HTMLInputElement).value;
+            router.push(val ? `/jobs?search=${encodeURIComponent(val)}` : '/jobs');
+          }}>
             <input
               type="text"
               className="search-bar"
               placeholder="Search roles, companies, or skills..."
               id="search-input"
             />
-            <button className="search-btn" id="search-btn">
+            <button type="submit" className="search-btn" id="search-btn">
               Search Jobs
             </button>
-          </div>
+          </form>
 
           {/* Tags */}
           <div className="hero-tags flex flex-wrap justify-center gap-2">
@@ -511,8 +506,7 @@ export default function Home() {
                   className="glass-card category-card"
                   id={`category-${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
                   onClick={() => {
-                    setActiveFilter(cat.name);
-                    document.getElementById("jobs")?.scrollIntoView({ behavior: "smooth" });
+                    router.push(`/jobs?category=${encodeURIComponent(cat.name)}`);
                   }}
                 >
                   <div
@@ -651,10 +645,11 @@ export default function Home() {
           {/* Load More */}
           <div className="text-center mt-10">
             <button
+              onClick={() => router.push('/jobs')}
               className="px-8 py-3 rounded-full border border-[rgba(255,255,255,0.08)] text-[#94a3b8] font-medium text-sm hover:border-[#8b5cf6] hover:text-white transition-all duration-300"
               id="load-more"
             >
-              Load more jobs ↓
+              View all jobs →
             </button>
           </div>
         </div>
