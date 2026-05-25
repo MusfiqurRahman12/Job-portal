@@ -17,6 +17,14 @@ export default function BlogPage() {
   const featuredRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   useEffect(() => {
     let active = true;
     const loadNews = async () => {
@@ -117,20 +125,34 @@ export default function BlogPage() {
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-24 px-6 relative z-10 selection:bg-[#34d399] selection:text-black">
-      {/* Background ambient glow specific to blog */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#34d399]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+    <>
+      <nav className={`navbar ${scrolled ? "scrolled" : ""}`} id="navbar">
+        <div className="navbar-inner">
+          <Link href="/" className="nav-logo">
+            Future<span>Talent</span>
+          </Link>
+          <div className="nav-links">
+            <Link href="/" className="nav-link">Browse Jobs</Link>
+            <Link href="/blog" className="nav-link">Blog</Link>
+            <a href="#" className="nav-cta">Post a Job</a>
+          </div>
+        </div>
+      </nav>
 
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <header className="text-center mb-16" ref={headerRef}>
-          <h1 className="blog-title text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 tracking-tight mb-6" style={{ perspective: "1000px" }}>
-            The Remote <span className="text-[#34d399]">Pulse</span>
-          </h1>
-          <p className="blog-subtitle text-lg text-[#94a3b8] max-w-2xl mx-auto">
-            Insights, strategies, and stories from the frontier of global remote work. Curated by AI, written for humans.
-          </p>
-        </header>
+      <div className="min-h-screen pt-32 pb-24 px-6 relative z-10 selection:bg-[#34d399] selection:text-black">
+        {/* Background ambient glow specific to blog */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#34d399]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <header className="text-center mb-16" ref={headerRef}>
+            <h1 className="blog-title text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 tracking-tight mb-6" style={{ perspective: "1000px" }}>
+              The Remote <span className="text-[#34d399]">Pulse</span>
+            </h1>
+            <p className="blog-subtitle text-lg text-[#94a3b8] max-w-2xl mx-auto">
+              Insights, strategies, and stories from the frontier of global remote work. Curated by AI, written for humans.
+            </p>
+          </header>
 
         {loading ? (
           /* Premium Skeleton Loader */
@@ -250,5 +272,6 @@ export default function BlogPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

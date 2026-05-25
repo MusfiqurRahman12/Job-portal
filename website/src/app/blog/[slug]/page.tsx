@@ -15,6 +15,7 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
   const [article, setArticle] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   const articleRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -73,14 +74,19 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
       const { top, height } = articleRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       
-      const scrolled = windowHeight - top;
+      const scrolledVal = windowHeight - top;
       const total = height + windowHeight;
-      const percentage = Math.min(Math.max((scrolled / total) * 100, 0), 100);
+      const percentage = Math.min(Math.max((scrolledVal / total) * 100, 0), 100);
       
       setProgress(percentage);
     };
 
+    const handleScrolledNav = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
     window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScrolledNav);
 
     // GSAP Animations
     const ctx = gsap.context(() => {
@@ -124,6 +130,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", handleScrolledNav);
       ctx.revert();
     };
   }, [loading, article]);
@@ -169,13 +176,20 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
         style={{ width: `${progress}%` }}
       />
 
-      {/* Standalone Minimal Nav */}
-      <nav className="absolute top-0 left-0 w-full p-6 z-40 flex justify-between items-center">
-        <Link href="/blog" className="text-white/60 hover:text-white transition-colors flex items-center gap-2">
-          ← Back to Blog
-        </Link>
-        <div className="text-white font-bold tracking-widest uppercase text-xs opacity-50">
-          FutureTalent Editorial
+      {/* Navbar */}
+      <nav className={`navbar ${scrolled ? "scrolled" : ""}`} id="navbar">
+        <div className="navbar-inner">
+          <Link href="/" className="nav-logo">
+            Future<span>Talent</span>
+          </Link>
+          <div className="nav-links">
+            <Link href="/" className="nav-link">Browse Jobs</Link>
+            <Link href="/blog" className="nav-link">Blog</Link>
+            <Link href="/blog" className="nav-link flex items-center gap-1">
+              ← Back to Blog
+            </Link>
+            <a href="#" className="nav-cta">Post a Job</a>
+          </div>
         </div>
       </nav>
 
