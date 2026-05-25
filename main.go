@@ -4,6 +4,7 @@ import (
 	"job-portal-crawler/scraper"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -18,7 +19,7 @@ func main() {
 	}
 
 	// Initialize Database
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL environment variable is required")
 	}
@@ -41,7 +42,7 @@ func main() {
 	defer close(stopCleanup)
 
 	// Initialize AI Service
-	aiKey := os.Getenv("GEMINI_API_KEY")
+	aiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
 	aiService := scraper.NewAIService(aiKey)
 
 	// Determine run mode from args
