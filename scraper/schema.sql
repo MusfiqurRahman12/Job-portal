@@ -54,3 +54,9 @@ SELECT category as name, COUNT(*)::int as count
 FROM jobs
 WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP
 GROUP BY category;
+
+-- Subscribers/Newsletter table for job alerts
+CREATE TABLE IF NOT EXISTS subscribers (
+    email TEXT PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

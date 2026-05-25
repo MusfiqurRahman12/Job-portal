@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount } from "@/lib/api";
+import { supabase } from "@/lib/supabaseClient";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -131,6 +132,48 @@ export default function Home() {
   const [apiJobs, setApiJobs] = useState<Job[]>([]);
   const [totalJobs, setTotalJobs] = useState<number>(0);
   const [apiCategories, setApiCategories] = useState<CategoryCount[]>([]);
+
+  // Newsletter State & Handler
+  const [email, setEmail] = useState("");
+  const [subStatus, setSubStatus] = useState<"idle" | "loading" | "success" | "error" | "invalid" | "exists">("idle");
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes("@")) {
+      setSubStatus("invalid");
+      return;
+    }
+
+    setSubStatus("loading");
+    try {
+      // Check if email already exists
+      const { data: existing, error: checkError } = await supabase
+        .from("subscribers")
+        .select("email")
+        .eq("email", email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existing) {
+        setSubStatus("exists");
+        return;
+      }
+
+      // Insert new subscriber
+      const { error: insertError } = await supabase
+        .from("subscribers")
+        .insert([{ email: email.trim().toLowerCase() }]);
+
+      if (insertError) throw insertError;
+
+      setSubStatus("success");
+      setEmail("");
+    } catch (err) {
+      console.error("Failed to subscribe:", err);
+      setSubStatus("error");
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -690,21 +733,53 @@ export default function Home() {
               Get AI-matched job alerts delivered to your inbox. Be the first to
               apply — listings expire in 24 hours.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="you@email.com"
-                className="flex-1 px-5 py-3 rounded-xl bg-[rgba(15,15,22,0.8)] border border-[rgba(255,255,255,0.06)] text-white outline-none focus:border-[#8b5cf6] transition-colors"
-                id="email-input"
-              />
-              <button
-                className="px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105"
-                style={{ background: "var(--gradient-primary)" }}
-                id="subscribe-btn"
-              >
-                Subscribe
-              </button>
-            </div>
+            <form onSubmit={handleSubscribe} className="flex flex-col gap-3 justify-center max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  placeholder="you@email.com"
+                  className="flex-1 px-5 py-3 rounded-xl bg-[rgba(15,15,22,0.8)] border border-[rgba(255,255,255,0.06)] text-white outline-none focus:border-[#8b5cf6] transition-colors"
+                  id="email-input"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (subStatus !== "idle") setSubStatus("idle");
+                  }}
+                  disabled={subStatus === "loading" || subStatus === "success"}
+                  required
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 disabled:opacity-50"
+                  style={{ background: "var(--gradient-primary)" }}
+                  id="subscribe-btn"
+                  disabled={subStatus === "loading" || subStatus === "success"}
+                >
+                  {subStatus === "loading" ? "Subscribing..." : "Subscribe"}
+                </button>
+              </div>
+
+              {subStatus === "success" && (
+                <p className="text-[#34d399] text-sm font-semibold mt-2 text-center">
+                  🎉 Success! You've successfully subscribed to job alerts.
+                </p>
+              )}
+              {subStatus === "exists" && (
+                <p className="text-[#a78bfa] text-sm font-semibold mt-2 text-center">
+                  ℹ️ This email is already subscribed to job alerts!
+                </p>
+              )}
+              {subStatus === "invalid" && (
+                <p className="text-[#fb7185] text-sm font-semibold mt-2 text-center">
+                  ⚠️ Please enter a valid email address.
+                </p>
+              )}
+              {subStatus === "error" && (
+                <p className="text-[#fb7185] text-sm font-semibold mt-2 text-center">
+                  ❌ Something went wrong. Please try again.
+                </p>
+              )}
+            </form>
           </div>
         </div>
       </section>
