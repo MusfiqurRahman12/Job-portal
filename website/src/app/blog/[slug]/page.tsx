@@ -183,12 +183,11 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
             Future<span>Talent</span>
           </Link>
           <div className="nav-links">
-            <Link href="/" className="nav-link">Browse Jobs</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
             <Link href="/blog" className="nav-link flex items-center gap-1">
               ← Back to Blog
             </Link>
-            <a href="#" className="nav-cta">Post a Job</a>
+            <Link href="/jobs" className="nav-cta-neon">Browse Jobs</Link>
           </div>
         </div>
       </nav>

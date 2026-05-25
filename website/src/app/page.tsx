@@ -372,11 +372,10 @@ export default function Home() {
             Future<span>Talent</span>
           </a>
           <div className="nav-links">
-            <a href="/jobs" className="nav-link">Browse Jobs</a>
             <a href="#categories" className="nav-link">Categories</a>
             <a href="#" className="nav-link">Companies</a>
             <a href="/blog" className="nav-link">Blog</a>
-            <a href="#" className="nav-cta">Post a Job</a>
+            <a href="/jobs" className="nav-cta-neon">Browse Jobs</a>
           </div>
         </div>
       </nav>

@@ -132,9 +132,8 @@ export default function BlogPage() {
             Future<span>Talent</span>
           </Link>
           <div className="nav-links">
-            <Link href="/" className="nav-link">Browse Jobs</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
-            <a href="#" className="nav-cta">Post a Job</a>
+            <Link href="/jobs" className="nav-cta-neon">Browse Jobs</Link>
           </div>
         </div>
       </nav>

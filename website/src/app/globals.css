@@ -530,6 +530,44 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-glow);
 }
 
+.nav-cta-neon {
+  padding: 0.6rem 1.5rem;
+  background: rgba(6, 6, 10, 0.8);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  border-radius: var(--radius-full);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  position: relative;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.1), inset 0 0 10px rgba(52, 211, 153, 0.1);
+  animation: neon-pulse 3s infinite alternate;
+}
+
+.nav-cta-neon:hover {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 1);
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.4), inset 0 0 15px rgba(52, 211, 153, 0.2);
+  transform: scale(1.03);
+}
+
+@keyframes neon-pulse {
+  0% {
+    border-color: rgba(52, 211, 153, 0.3);
+    box-shadow: 0 0 5px rgba(52, 211, 153, 0.1), inset 0 0 5px rgba(52, 211, 153, 0.05);
+  }
+  50% {
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2), inset 0 0 10px rgba(139, 92, 246, 0.1);
+  }
+  100% {
+    border-color: rgba(52, 211, 153, 0.6);
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.3), inset 0 0 8px rgba(52, 211, 153, 0.15);
+  }
+}
+
 /* ═══════════════════════════════════════════════════════
    FOOTER
    ═══════════════════════════════════════════════════════ */
