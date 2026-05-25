@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { fetchJobs, fetchCategories, getHoursLeft, Job, CategoryCount } from "@/lib/api";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
   let cls = "expire-badge fresh";
@@ -27,34 +28,45 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 function JobsContent() {
+  const PAGE_SIZE = 10;
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const initialCategory = searchParams.get("category") || "All";
   const initialSearch = searchParams.get("search") || "";
+  const initialPage = parseInt(searchParams.get("page") || "1", 10);
   
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [searchInput, setSearchInput] = useState(initialSearch);
+  const [currentPage, setCurrentPage] = useState(initialPage);
   
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Reset page when category or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, searchQuery]);
 
   // Sync state to URL
   useEffect(() => {
     const params = new URLSearchParams();
     if (activeCategory !== "All") params.set("category", activeCategory);
     if (searchQuery) params.set("search", searchQuery);
+    if (currentPage > 1) params.set("page", String(currentPage));
     router.replace(`/jobs?${params.toString()}`);
-  }, [activeCategory, searchQuery, router]);
+  }, [activeCategory, searchQuery, currentPage, router]);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
         const jobsParams = {
-          limit: 50,
+          limit: PAGE_SIZE,
+          offset: (currentPage - 1) * PAGE_SIZE,
           category: activeCategory === "All" ? undefined : activeCategory,
           search: searchQuery || undefined,
         };
@@ -64,6 +76,7 @@ function JobsContent() {
         ]);
         
         setJobs(jobsRes.jobs || []);
+        setTotalCount(jobsRes.count || 0);
         setCategories(cats || []);
       } catch (err) {
         console.error("Failed to load jobs", err);
@@ -72,7 +85,7 @@ function JobsContent() {
       }
     }
     loadData();
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, currentPage]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +96,7 @@ function JobsContent() {
     <>
       <nav className="navbar scrolled">
         <div className="navbar-inner">
-          <a href="/" className="nav-logo">Remote<span>Hub</span></a>
+          <a href="/" className="nav-logo">Future<span>Talent</span></a>
           <div className="nav-links">
             <a href="/jobs" className="nav-link active">Browse Jobs</a>
             <a href="/#categories" className="nav-link">Categories</a>
@@ -154,80 +167,123 @@ function JobsContent() {
                 <p className="text-[#94a3b8]">Try adjusting your search filters</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="text-sm text-[#94a3b8] mb-4">Showing {jobs.length} jobs</div>
-                {jobs.map((job) => {
-                  const hoursLeft = job.expires_at ? getHoursLeft(job.expires_at) : 24;
-                  const color = CATEGORY_COLORS[job.category] || CATEGORY_COLORS["General"];
-                  const company_logo = job.company_logo || job.company[0];
-                  
-                  return (
-                    <div
-                      key={job.id}
-                      className="glass-card job-card flex flex-col md:flex-row md:items-center justify-between gap-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="company-avatar"
-                          style={{
-                            background: `linear-gradient(135deg, ${color}20, ${color}40)`,
-                            border: `1px solid ${color}50`,
-                            color: color,
-                          }}
-                        >
-                          {company_logo.length > 1 && company_logo.startsWith("http") ? (
-                            <img src={company_logo} alt={job.company} className="w-full h-full object-contain rounded-md p-1" />
-                          ) : (
-                            company_logo
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="text-[1.05rem] font-bold text-white mb-1">{job.title}</h3>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#94a3b8]">
-                            <span className="font-medium">{job.company}</span>
-                            <span className="text-[#334155]">•</span>
-                            <span className="inline-flex items-center gap-1">
-                              {job.remote_type === "worldwide" ? "🌍" : "📍"} {job.location}
-                            </span>
+              <div className="space-y-6">
+                <div className="text-sm text-[#94a3b8] mb-4">
+                  Showing {Math.min(totalCount, (currentPage - 1) * PAGE_SIZE + 1)}–
+                  {Math.min(totalCount, currentPage * PAGE_SIZE)} of {totalCount} jobs
+                </div>
+                
+                <div className="space-y-4">
+                  {jobs.map((job) => {
+                    const hoursLeft = job.expires_at ? getHoursLeft(job.expires_at) : 24;
+                    const color = CATEGORY_COLORS[job.category] || CATEGORY_COLORS["General"];
+                    const company_logo = job.company_logo || job.company[0];
+                    
+                    return (
+                      <div
+                        key={job.id}
+                        className="glass-card job-card flex flex-col md:flex-row md:items-center justify-between gap-4"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className="company-avatar"
+                            style={{
+                              background: `linear-gradient(135deg, ${color}20, ${color}40)`,
+                              border: `1px solid ${color}50`,
+                              color: color,
+                            }}
+                          >
+                            {company_logo.length > 1 && company_logo.startsWith("http") ? (
+                              <img src={company_logo} alt={job.company} className="w-full h-full object-contain rounded-md p-1" />
+                            ) : (
+                              company_logo
+                            )}
                           </div>
-                          <div className="flex gap-1.5 mt-2 flex-wrap">
-                            {job.tags?.slice(0, 3).map((tag: string) => (
-                              <span
-                                key={tag}
-                                className="text-[0.7rem] font-medium px-2.5 py-0.5 rounded-full"
-                                style={{
-                                  background: `${color}10`,
-                                  color: color,
-                                  border: `1px solid ${color}20`,
-                                }}
-                              >
-                                {tag}
+                          <div>
+                            <h3 className="text-[1.05rem] font-bold text-white mb-1">{job.title}</h3>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#94a3b8]">
+                              <span className="font-medium">{job.company}</span>
+                              <span className="text-[#334155]">•</span>
+                              <span className="inline-flex items-center gap-1">
+                                {job.remote_type === "worldwide" ? "🌍" : "📍"} {job.location}
                               </span>
-                            ))}
+                            </div>
+                            <div className="flex gap-1.5 mt-2 flex-wrap">
+                              {job.tags?.slice(0, 3).map((tag: string) => (
+                                <span
+                                  key={tag}
+                                  className="text-[0.7rem] font-medium px-2.5 py-0.5 rounded-full"
+                                  style={{
+                                    background: `${color}10`,
+                                    color: color,
+                                    border: `1px solid ${color}20`,
+                                  }}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-5 md:ml-auto">
-                        <div className="text-right hidden md:block">
-                          <div className="font-bold text-white text-sm">{job.salary || "Competitive"}</div>
-                          <div className="text-xs text-[#64748b] mt-0.5">{job.category}</div>
+                        <div className="flex items-center gap-5 md:ml-auto">
+                          <div className="text-right hidden md:block">
+                            <div className="font-bold text-white text-sm">{job.salary || "Competitive"}</div>
+                            <div className="text-xs text-[#64748b] mt-0.5">{job.category}</div>
+                          </div>
+                          <ExpireBadge hoursLeft={hoursLeft} />
+                          <a href={`/jobs/${job.id}`}
+                            className="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 inline-block text-center"
+                            style={{
+                              background: `${color}15`,
+                              color: color,
+                              border: `1px solid ${color}30`,
+                            }}
+                          >
+                            View Job →
+                          </a>
                         </div>
-                        <ExpireBadge hoursLeft={hoursLeft} />
-                        <a href={`/jobs/${job.id}`}
-                          className="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 inline-block text-center"
-                          style={{
-                            background: `${color}15`,
-                            color: color,
-                            border: `1px solid ${color}30`,
-                          }}
-                        >
-                          View Job →
-                        </a>
                       </div>
+                    );
+                  })}
+                </div>
+
+                {/* PAGINATION CONTROLS */}
+                {Math.ceil(totalCount / PAGE_SIZE) > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/5 mt-8">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      ← Previous
+                    </button>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Array.from({ length: Math.ceil(totalCount / PAGE_SIZE) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
+                            currentPage === page
+                              ? "bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/30 border border-[#8b5cf6]"
+                              : "border border-white/10 hover:bg-white/5 text-[#94a3b8]"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
+
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / PAGE_SIZE), prev + 1))}
+                      disabled={currentPage === Math.ceil(totalCount / PAGE_SIZE)}
+                      className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -237,7 +293,7 @@ function JobsContent() {
       <footer className="footer mt-auto">
         <div className="max-w-5xl mx-auto px-6 py-16">
           <div className="border-t border-[rgba(255,255,255,0.06)] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
-            <span>© 2026 RemoteHub. All rights reserved.</span>
+            <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></span>
             <span>Powered by AI • Built with ♥ for remote workers</span>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount } from "@/lib/api";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -368,7 +369,7 @@ export default function Home() {
       <nav className={`navbar ${scrolled ? "scrolled" : ""}`} id="navbar">
         <div className="navbar-inner">
           <a href="/" className="nav-logo">
-            Remote<span>Hub</span>
+            Future<span>Talent</span>
           </a>
           <div className="nav-links">
             <a href="/jobs" className="nav-link">Browse Jobs</a>
@@ -711,7 +712,7 @@ export default function Home() {
           <div className="footer-grid">
             <div>
               <a href="/" className="nav-logo text-xl block mb-4">
-                Remote<span className="gradient-text">Hub</span>
+                Future<span className="gradient-text">Talent</span>
               </a>
               <p className="text-[#64748b] text-sm leading-relaxed max-w-xs">
                 AI-curated remote jobs from 200+ sources. Fresh listings every
@@ -735,13 +736,13 @@ export default function Home() {
             <div>
               <div className="footer-heading">Company</div>
               <a href="#" className="footer-link">About Us</a>
-              <a href="#" className="footer-link">Privacy Policy</a>
+              <Link href="/privacy" className="footer-link">Privacy Policy</Link>
               <a href="#" className="footer-link">Terms of Service</a>
               <a href="#" className="footer-link">Contact</a>
             </div>
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
-            <span>© 2026 RemoteHub. All rights reserved.</span>
+            <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></span>
             <span>Powered by AI • Built with ♥ for remote workers</span>
           </div>
         </div>

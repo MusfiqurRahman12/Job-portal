@@ -249,6 +249,16 @@ func (db *DB) Close() {
 	db.conn.Close()
 }
 
+// JobURLExists checks if a job with the given URL already exists in the database.
+// Used to deduplicate before sending to Gemini AI (saves API quota).
+func (db *DB) JobURLExists(url string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM jobs WHERE url = $1)`
+	err := db.conn.QueryRow(query, url).Scan(&exists)
+	return exists, err
+}
+
+
 // InitSchema loads schema.sql and runs it on the database connection
 func (db *DB) InitSchema() error {
 	schemaBytes, err := os.ReadFile("scraper/schema.sql")

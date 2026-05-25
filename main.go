@@ -70,10 +70,10 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine := scraper.NewEngine(db, aiService)
 
 	// Register all job scrapers — each runs concurrently via goroutines
-	engine.AddScraper(scraper.NewWWRScraper())
-	engine.AddScraper(scraper.NewRemoteOKScraper())
-	// engine.AddScraper(scraper.NewGreenhouseScraper())  // TODO
-	// engine.AddScraper(scraper.NewIndeedScraper())      // TODO
+	engine.AddScraper(scraper.NewWWRScraper())       // We Work Remotely (RSS feed)
+	engine.AddScraper(scraper.NewRemoteOKScraper())   // RemoteOK (JSON API)
+	engine.AddScraper(scraper.NewRemotiveScraper())   // Remotive (JSON API)
+	engine.AddScraper(scraper.NewArbeitnowScraper())  // Arbeitnow (JSON API)
 
 	// Register all news/blog RSS scrapers
 	engine.AddNewsScraper(scraper.NewRSSScraper("Sorry I Was On Mute", "https://sorryonmute.com/feed/"))

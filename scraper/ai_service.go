@@ -108,12 +108,22 @@ func (ai *AIService) OptimizeJob(job *shared.Job) error {
 
 	log.Printf("[AI] Optimizing description for: %s", job.Title)
 
-	prompt := fmt.Sprintf(`You are an expert SEO copywriter for a premium remote job portal.
-Your task is to rewrite the following job description to be highly engaging, professional, and SEO-optimized for Google AdSense compliance.
-Ensure the content is unique and reads smoothly. Do NOT alter the core requirements, salary, or technical facts.
-Format the output with clean markdown (use headings, bullet points, and bold text appropriately).
+	prompt := fmt.Sprintf(`You are a professional HR Specialist and recruiter at a top-tier company.
+Rewrite the following job posting to be highly engaging, well-structured, professional, and SEO-optimized.
+Use bullet points for requirements and responsibilities. Keep the tone warm yet authoritative.
+Preserve all factual details (salary, location, company name, technical requirements) exactly as stated.
+Format with clear sections using markdown:
+- **About the Role** — A compelling 2-3 sentence overview
+- **Responsibilities** — Bullet-pointed key duties
+- **Requirements** — Bullet-pointed must-have qualifications
+- **Nice to Have** — Optional qualifications (only if mentioned in original)
+- **Benefits** — Perks and compensation details (only if mentioned in original)
+- **How to Apply** — Application instructions (only if mentioned in original)
 
-Original Description:
+Do NOT invent any details not present in the original. Keep it concise and professional.
+Do NOT wrap the output in markdown backticks.
+
+Original Job Description:
 %s`, job.Description)
 
 	genConfig := map[string]interface{}{

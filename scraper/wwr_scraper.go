@@ -1,21 +1,23 @@
 package scraper
 
 import (
+	"encoding/xml"
 	"fmt"
+	"io"
 	"job-portal-crawler/shared"
 	"log"
+	"net/http"
+	"strings"
 	"time"
-
-	"github.com/gocolly/colly/v2"
 )
 
 type WWRScraper struct {
-	baseURL string
+	feedURL string
 }
 
 func NewWWRScraper() *WWRScraper {
 	return &WWRScraper{
-		baseURL: "https://weworkremotely.com/remote-jobs/search?term=Remote",
+		feedURL: "https://weworkremotely.com/remote-jobs.rss",
 	}
 }
 
@@ -23,52 +25,155 @@ func (w *WWRScraper) Name() string {
 	return "We Work Remotely"
 }
 
+// wwrRSSFeed represents the RSS XML structure from We Work Remotely
+type wwrRSSFeed struct {
+	XMLName xml.Name `xml:"rss"`
+	Channel struct {
+		Items []wwrRSSItem `xml:"item"`
+	} `xml:"channel"`
+}
+
+type wwrRSSItem struct {
+	Title       string `xml:"title"`
+	Link        string `xml:"link"`
+	Description string `xml:"description"`
+	PubDate     string `xml:"pubDate"`
+	Region      string `xml:"region"`
+	Type        string `xml:"type"`
+	Category    string `xml:"category"`
+	Company     string `xml:"company"`
+}
+
 func (w *WWRScraper) Crawl() ([]shared.Job, error) {
-	var jobs []shared.Job
-	c := colly.NewCollector(
-		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
-	)
+	client := &http.Client{Timeout: 30 * time.Second}
 
-	// Set timeouts
-	c.SetRequestTimeout(30 * time.Second)
-
-	c.OnHTML("section.jobs article ul li", func(e *colly.HTMLElement) {
-		// Only get elements that look like job listings
-		title := e.ChildText("span.title")
-		if title == "" {
-			return
-		}
-
-		company := e.ChildText("span.company")
-		location := e.ChildText("span.region")
-		jobURL := e.ChildAttr("a[href^='/remote-jobs/']", "href")
-
-		if jobURL != "" {
-			fullURL := e.Request.AbsoluteURL(jobURL)
-			job := shared.Job{
-				Title:    title,
-				Company:  company,
-				Location: location,
-				Source:   w.Name(),
-				URL:      fullURL,
-				PostedAt: time.Now(), // WWR doesn't always show precise time in the list
-			}
-			jobs = append(jobs, job)
-		}
-	})
-
-	c.OnRequest(func(r *colly.Request) {
-		log.Printf("Visiting %s", r.URL)
-	})
-
-	c.OnError(func(r *colly.Response, err error) {
-		log.Printf("Request URL: %s failed with response: %v\nError: %v", r.Request.URL, r, err)
-	})
-
-	err := c.Visit(w.baseURL)
+	req, err := http.NewRequest("GET", w.feedURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to visit WWR: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("User-Agent", "FutureTalent Job Aggregator/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch WWR RSS feed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("WWR RSS returned status %d", resp.StatusCode)
 	}
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read RSS response: %w", err)
+	}
+
+	var feed wwrRSSFeed
+	if err := xml.Unmarshal(body, &feed); err != nil {
+		return nil, fmt.Errorf("failed to parse RSS XML: %w", err)
+	}
+
+	var jobs []shared.Job
+	for _, item := range feed.Channel.Items {
+		if item.Title == "" || item.Link == "" {
+			continue
+		}
+
+		// Parse company name from title if not in the XML
+		// WWR titles are often formatted as "Company: Job Title"
+		title := item.Title
+		company := item.Company
+		if company == "" {
+			// Try to extract company from title pattern "Company: Title"
+			if idx := strings.Index(title, ": "); idx > 0 {
+				company = title[:idx]
+				title = title[idx+2:]
+			}
+		}
+
+		location := item.Region
+		if location == "" {
+			location = "Remote Worldwide"
+		}
+
+		remoteType := "worldwide"
+		locLower := strings.ToLower(location)
+		if strings.Contains(locLower, "usa") || strings.Contains(locLower, "europe") ||
+			strings.Contains(locLower, "uk") || strings.Contains(locLower, "us only") {
+			remoteType = "country"
+		}
+
+		// Map WWR category to our standard categories
+		category := mapWWRCategory(item.Category)
+
+		postedAt := time.Now()
+		if item.PubDate != "" {
+			// RSS feeds typically use RFC1123 or RFC2822 date format
+			formats := []string{
+				time.RFC1123,
+				time.RFC1123Z,
+				"Mon, 02 Jan 2006 15:04:05 -0700",
+				"Mon, 02 Jan 2006 15:04:05 MST",
+			}
+			for _, f := range formats {
+				if parsed, err := time.Parse(f, item.PubDate); err == nil {
+					postedAt = parsed
+					break
+				}
+			}
+		}
+
+		// Clean HTML from description
+		desc := item.Description
+		desc = strings.ReplaceAll(desc, "<br>", "\n")
+		desc = strings.ReplaceAll(desc, "<br/>", "\n")
+		desc = strings.ReplaceAll(desc, "</p>", "\n")
+		desc = strings.ReplaceAll(desc, "</li>", "\n")
+
+		job := shared.Job{
+			Title:       title,
+			Company:     company,
+			Location:    location,
+			Description: desc,
+			Source:      w.Name(),
+			URL:         item.Link,
+			RemoteType:  remoteType,
+			Category:    category,
+			PostedAt:    postedAt,
+		}
+		job.SetExpiration()
+		jobs = append(jobs, job)
+	}
+
+	log.Printf("[WWR RSS] Fetched %d jobs", len(jobs))
 	return jobs, nil
+}
+
+// mapWWRCategory maps WWR's category strings to our standard categories
+func mapWWRCategory(cat string) string {
+	catLower := strings.ToLower(cat)
+	switch {
+	case strings.Contains(catLower, "programming") || strings.Contains(catLower, "software") || strings.Contains(catLower, "back-end") || strings.Contains(catLower, "front-end") || strings.Contains(catLower, "full-stack"):
+		return "Engineering"
+	case strings.Contains(catLower, "design"):
+		return "Design"
+	case strings.Contains(catLower, "marketing") || strings.Contains(catLower, "copywriting"):
+		return "Marketing"
+	case strings.Contains(catLower, "data") || strings.Contains(catLower, "machine learning"):
+		return "Data Science"
+	case strings.Contains(catLower, "devops") || strings.Contains(catLower, "sysadmin"):
+		return "DevOps"
+	case strings.Contains(catLower, "product"):
+		return "Product"
+	case strings.Contains(catLower, "customer") || strings.Contains(catLower, "support"):
+		return "Customer Support"
+	case strings.Contains(catLower, "sales") || strings.Contains(catLower, "business"):
+		return "Sales"
+	case strings.Contains(catLower, "hr") || strings.Contains(catLower, "recruiting"):
+		return "HR"
+	case strings.Contains(catLower, "finance") || strings.Contains(catLower, "legal"):
+		return "Finance"
+	default:
+		return "Engineering"
+	}
 }

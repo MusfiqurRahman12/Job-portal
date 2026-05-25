@@ -48,4 +48,9 @@ CREATE TABLE IF NOT EXISTS news (
 CREATE INDEX IF NOT EXISTS idx_news_slug ON news(slug);
 CREATE INDEX IF NOT EXISTS idx_news_category ON news(category);
 CREATE INDEX IF NOT EXISTS idx_news_published_at ON news(published_at DESC);
-
+-- View for category counts
+CREATE OR REPLACE VIEW category_counts AS
+SELECT category as name, COUNT(*)::int as count
+FROM jobs
+WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP
+GROUP BY category;

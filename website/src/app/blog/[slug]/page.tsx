@@ -175,7 +175,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
           ← Back to Blog
         </Link>
         <div className="text-white font-bold tracking-widest uppercase text-xs opacity-50">
-          RemoteHub Editorial
+          FutureTalent Editorial
         </div>
       </nav>
 

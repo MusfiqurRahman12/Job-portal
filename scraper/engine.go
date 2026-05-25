@@ -92,18 +92,14 @@ func (e *Engine) Run() {
 	// This prevents slow news AI calls from blocking job saves
 	var processingWg sync.WaitGroup
 
-	// Goroutine 1: Process all job listings (AI only for first 3, rest saved as-is)
+	// Goroutine 1: Process all job listings
+	// Pipeline: Scrape → Deduplicate → Gemini Rewrite → Save
+	// RULE: No Gemini, No Post — raw scraped content is NEVER saved
 	processingWg.Add(1)
 	go func() {
 		defer processingWg.Done()
-		optCount := 0
 		for job := range jobChan {
-			optimize := false
-			if false { // Temporarily disable to bypass quota
-				optimize = true
-				optCount++
-			}
-			e.processJob(job, optimize)
+			e.processJob(job)
 		}
 	}()
 
@@ -120,23 +116,40 @@ func (e *Engine) Run() {
 	processingWg.Wait()
 }
 
-func (e *Engine) processJob(job shared.Job, optimize bool) {
-	// 1. AI Content Optimization (only for first 3 jobs per run)
-	if optimize && e.aiService != nil {
-		err := e.aiService.OptimizeJob(&job)
+func (e *Engine) processJob(job shared.Job) {
+	// 1. Deduplicate — check if URL already exists in DB (skip before AI to save quota)
+	if job.URL != "" {
+		exists, err := e.db.JobURLExists(job.URL)
 		if err != nil {
-			log.Printf("AI Optimization failed for job %s: %v", job.Title, err)
+			log.Printf("[Dedup] Error checking URL for %s: %v", job.Title, err)
+			// On error, proceed cautiously — try to save anyway
+		} else if exists {
+			log.Printf("[Dedup] Skipping duplicate: %s (%s)", job.Title, job.URL)
+			return
 		}
 	}
 
-	// 2. Save to Database
+	// 2. Gemini AI Rewrite — MANDATORY for all new jobs
+	// "No Gemini, No Post" rule: if AI fails, we skip the job entirely
+	if e.aiService != nil {
+		err := e.aiService.OptimizeJob(&job)
+		if err != nil {
+			log.Printf("[AI] ❌ Gemini rewrite failed for [%s] at %s — SKIPPING (No Gemini, No Post): %v", job.Title, job.Company, err)
+			return // Do NOT save raw scraped content
+		}
+	} else {
+		log.Printf("[AI] ⚠️ No AI service configured — skipping job: %s (No Gemini, No Post rule)", job.Title)
+		return // Do NOT save without AI rewrite
+	}
+
+	// 3. Save Gemini-rewritten job to Database
 	err := e.db.SaveJob(job)
 	if err != nil {
 		log.Printf("Error saving job from %s: %v", job.Source, err)
 		return
 	}
 
-	log.Printf("Saved job: [%s] at %s from %s", job.Title, job.Company, job.Source)
+	log.Printf("✅ Saved job: [%s] at %s from %s", job.Title, job.Company, job.Source)
 }
 
 func (e *Engine) processNews(art shared.News) {
@@ -165,4 +178,3 @@ func (e *Engine) processNews(art shared.News) {
 
 	log.Printf("Saved news article: [%s] Category: %s from %s", art.Title, art.Category, art.Author)
 }
-

@@ -15,12 +15,12 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "RemoteHub — Find Remote Jobs Worldwide | Work From Anywhere",
+  title: "FutureTalent — Find Remote Jobs Worldwide | Work From Anywhere",
   description:
     "Discover the best remote jobs from around the world. Curated daily by AI. Engineering, Design, Marketing, and more — updated every 24 hours.",
-  keywords: ["remote jobs", "work from home", "worldwide jobs", "remote engineering", "remote design"],
+  keywords: ["remote jobs", "work from home", "worldwide jobs", "remote engineering", "remote design", "futuretalent", "futuretalent.online"],
   openGraph: {
-    title: "RemoteHub — Find Remote Jobs Worldwide",
+    title: "FutureTalent — Find Remote Jobs Worldwide",
     description: "Discover the best remote jobs from around the world, curated daily by AI.",
     type: "website",
   },
