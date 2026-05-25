@@ -432,7 +432,13 @@ export default function Home() {
             {["All", "Engineering", "Design", "Marketing", "Data Science", "DevOps"].map((t) => (
               <button
                 key={t}
-                onClick={() => setActiveFilter(t)}
+                onClick={() => {
+                  setActiveFilter(t);
+                  // Smoothly scroll to the jobs list section so the user sees the filtered results
+                  setTimeout(() => {
+                    document.getElementById("jobs")?.scrollIntoView({ behavior: "smooth" });
+                  }, 100);
+                }}
                 className={`tag-chip ${activeFilter === t ? "active" : ""}`}
                 id={`filter-${t.toLowerCase().replace(/\s+/g, "-")}`}
               >
