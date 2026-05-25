@@ -669,23 +669,25 @@ export default function Home() {
                 </div>
 
                 {/* Right: Salary + Expire + CTA */}
-                <div className="flex items-center gap-5 md:ml-auto">
-                  <div className="text-right hidden md:block">
-                    <div className="font-bold text-white text-sm">{salary}</div>
-                    <div className="text-xs text-[#64748b] mt-0.5">{category}</div>
+                <div className="flex flex-wrap items-center gap-3 md:gap-5 md:ml-auto w-full md:w-auto justify-between md:justify-end border-t border-[rgba(255,255,255,0.05)] md:border-t-0 pt-3 md:pt-0 mt-2 md:mt-0">
+                  <div className="text-left md:text-right">
+                    <div className="font-bold text-white text-[0.95rem]">{salary}</div>
+                    <div className="text-xs text-[#a78bfa] mt-0.5">{category}</div>
                   </div>
-                  <ExpireBadge hoursLeft={hoursLeft} />
-                  <a href={`/jobs/${id}`}
-                    className="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 inline-block text-center"
-                    style={{
-                      background: `${color}15`,
-                      color: color,
-                      border: `1px solid ${color}30`,
-                    }}
-                    id={`apply-${id}`}
-                  >
-                    View Job →
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <ExpireBadge hoursLeft={hoursLeft} />
+                    <a href={`/jobs/${id}`}
+                      className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 inline-block text-center whitespace-nowrap"
+                      style={{
+                        background: `${color}15`,
+                        color: color,
+                        border: `1px solid ${color}30`,
+                      }}
+                      id={`apply-${id}`}
+                    >
+                      Apply →
+                    </a>
+                  </div>
                 </div>
               </div>
             )})}

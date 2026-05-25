@@ -107,11 +107,18 @@ function JobsContent() {
       </nav>
 
       <main className="flex-1 pt-24 pb-20 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-8">
+          
+          {/* Mobile Page Title */}
+          <div className="lg:hidden w-full">
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              Browse <span className="gradient-text">{activeCategory === "All" ? "All Jobs" : activeCategory}</span>
+            </h1>
+          </div>
           
           {/* LEFT SIDEBAR */}
           <aside className="w-full lg:w-64 flex-shrink-0">
-            <div className="sticky top-28 glass-card p-6">
+            <div className="lg:sticky lg:top-28 glass-card p-6">
               <h3 className="text-lg font-bold mb-4 gradient-text">Categories</h3>
               <ul className="space-y-2">
                 <li>
@@ -140,7 +147,7 @@ function JobsContent() {
           {/* MAIN CONTENT */}
           <div className="flex-1">
             <div className="mb-8">
-              <h1 className="text-4xl font-extrabold mb-4 tracking-tight">
+              <h1 className="text-4xl font-extrabold mb-4 tracking-tight hidden lg:block">
                 Browse <span className="gradient-text">{activeCategory === "All" ? "All Jobs" : activeCategory}</span>
               </h1>
               
