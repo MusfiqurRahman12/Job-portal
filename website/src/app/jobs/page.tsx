@@ -1,9 +1,13 @@
-"use client";
-
-import { useEffect, useState, Suspense } from "react";
-import { fetchJobs, fetchCategories, getHoursLeft, Job, CategoryCount } from "@/lib/api";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { fetchJobs, fetchCategories, getHoursLeft, Job } from "@/lib/api";
 import Link from "next/link";
+import SearchForm from "@/components/SearchForm";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Browse All Remote Jobs | FutureTalent",
+  description: "Browse hundreds of active remote jobs in Software Engineering, Design, Marketing, Product Management, and DevOps. Filter by category, location, and skills.",
+};
 
 function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
   let cls = "expire-badge fresh";
@@ -27,69 +31,54 @@ const CATEGORY_COLORS: Record<string, string> = {
   "General": "#94a3b8"
 };
 
-function JobsContent() {
+interface PageProps {
+  searchParams: Promise<{
+    category?: string;
+    search?: string;
+    page?: string;
+  }>;
+}
+
+// Wrapper content component to resolve parameters and fetch data on the server
+async function JobsContent({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+  const activeCategory = resolvedParams.category || "All";
+  const searchQuery = resolvedParams.search || "";
+  const currentPage = parseInt(resolvedParams.page || "1", 10);
+  
   const PAGE_SIZE = 10;
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const initialCategory = searchParams.get("category") || "All";
-  const initialSearch = searchParams.get("search") || "";
-  const initialPage = parseInt(searchParams.get("page") || "1", 10);
-  
-  const [activeCategory, setActiveCategory] = useState(initialCategory);
-  const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [searchInput, setSearchInput] = useState(initialSearch);
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [categories, setCategories] = useState<CategoryCount[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // Reset page when category or search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeCategory, searchQuery]);
+  const jobsParams = {
+    limit: PAGE_SIZE,
+    offset: (currentPage - 1) * PAGE_SIZE,
+    category: activeCategory === "All" ? undefined : activeCategory,
+    search: searchQuery || undefined,
+  };
 
-  // Sync state to URL
-  useEffect(() => {
+  // Concurrent server-side fetches
+  const [jobsRes, categories] = await Promise.all([
+    fetchJobs(jobsParams),
+    fetchCategories()
+  ]);
+
+  const jobs = jobsRes.jobs || [];
+  const totalCount = jobsRes.count || 0;
+
+  // Helper to generate dynamic search parameter URL strings for categories
+  const getCategoryUrl = (catName: string) => {
+    const params = new URLSearchParams();
+    if (catName !== "All") params.set("category", catName);
+    if (searchQuery) params.set("search", searchQuery);
+    return `/jobs?${params.toString()}`;
+  };
+
+  // Helper to generate dynamic search parameter URL strings for pagination
+  const getPageUrl = (pageNumber: number) => {
     const params = new URLSearchParams();
     if (activeCategory !== "All") params.set("category", activeCategory);
     if (searchQuery) params.set("search", searchQuery);
-    if (currentPage > 1) params.set("page", String(currentPage));
-    router.replace(`/jobs?${params.toString()}`);
-  }, [activeCategory, searchQuery, currentPage, router]);
-
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      try {
-        const jobsParams = {
-          limit: PAGE_SIZE,
-          offset: (currentPage - 1) * PAGE_SIZE,
-          category: activeCategory === "All" ? undefined : activeCategory,
-          search: searchQuery || undefined,
-        };
-        const [jobsRes, cats] = await Promise.all([
-          fetchJobs(jobsParams),
-          fetchCategories()
-        ]);
-        
-        setJobs(jobsRes.jobs || []);
-        setTotalCount(jobsRes.count || 0);
-        setCategories(cats || []);
-      } catch (err) {
-        console.error("Failed to load jobs", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [activeCategory, searchQuery, currentPage]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchQuery(searchInput);
+    if (pageNumber > 1) params.set("page", String(pageNumber));
+    return `/jobs?${params.toString()}`;
   };
 
   return (
@@ -122,22 +111,22 @@ function JobsContent() {
               <h3 className="text-lg font-bold mb-4 gradient-text">Categories</h3>
               <ul className="space-y-2">
                 <li>
-                  <button 
-                    onClick={() => setActiveCategory("All")}
+                  <Link 
+                    href={getCategoryUrl("All")}
                     className={`w-full text-left px-3 py-2 rounded-lg transition-colors text-sm font-medium flex justify-between items-center ${activeCategory === "All" ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa]' : 'text-[#94a3b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white'}`}
                   >
                     All Categories
-                  </button>
+                  </Link>
                 </li>
                 {categories.map(cat => (
                   <li key={cat.name}>
-                    <button 
-                      onClick={() => setActiveCategory(cat.name)}
+                    <Link 
+                      href={getCategoryUrl(cat.name)}
                       className={`w-full text-left px-3 py-2 rounded-lg transition-colors text-sm font-medium flex justify-between items-center ${activeCategory === cat.name ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa]' : 'text-[#94a3b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white'}`}
                     >
                       <span className="truncate mr-2">{cat.name}</span>
                       <span className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded text-xs">{cat.count}</span>
-                    </button>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -151,24 +140,11 @@ function JobsContent() {
                 Browse <span className="gradient-text">{activeCategory === "All" ? "All Jobs" : activeCategory}</span>
               </h1>
               
-              <form onSubmit={handleSearch} className="search-container !relative !max-w-full !transform-none !opacity-100">
-                <input
-                  type="text"
-                  className="search-bar"
-                  placeholder="Search role, position, skills, experience..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                />
-                <button type="submit" className="search-btn">Search</button>
-              </form>
+              {/* Client Component Search Form */}
+              <SearchForm />
             </div>
 
-            {loading ? (
-              <div className="text-center py-20 text-[#94a3b8]">
-                <div className="inline-block w-8 h-8 border-2 border-[rgba(139,92,246,0.2)] border-t-[#8b5cf6] rounded-full animate-spin mb-4"></div>
-                <p>Loading jobs...</p>
-              </div>
-            ) : jobs.length === 0 ? (
+            {jobs.length === 0 ? (
               <div className="glass-card text-center py-20">
                 <p className="text-xl font-medium text-white mb-2">No jobs found</p>
                 <p className="text-[#94a3b8]">Try adjusting your search filters</p>
@@ -239,7 +215,7 @@ function JobsContent() {
                             <div className="text-xs text-[#64748b] mt-0.5">{job.category}</div>
                           </div>
                           <ExpireBadge hoursLeft={hoursLeft} />
-                          <a href={`/jobs/${job.id}`}
+                          <Link href={`/jobs/${job.id}`}
                             className="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 inline-block text-center"
                             style={{
                               background: `${color}15`,
@@ -248,7 +224,7 @@ function JobsContent() {
                             }}
                           >
                             View Job →
-                          </a>
+                          </Link>
                         </div>
                       </div>
                     );
@@ -258,37 +234,47 @@ function JobsContent() {
                 {/* PAGINATION CONTROLS */}
                 {Math.ceil(totalCount / PAGE_SIZE) > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/5 mt-8">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent"
-                    >
-                      ← Previous
-                    </button>
+                    {currentPage === 1 ? (
+                      <span className="px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 opacity-40 select-none">
+                        ← Previous
+                      </span>
+                    ) : (
+                      <Link
+                        href={getPageUrl(currentPage - 1)}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5"
+                      >
+                        ← Previous
+                      </Link>
+                    )}
 
                     <div className="flex items-center gap-2 flex-wrap">
                       {Array.from({ length: Math.ceil(totalCount / PAGE_SIZE) }, (_, i) => i + 1).map((page) => (
-                        <button
+                        <Link
                           key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
+                          href={getPageUrl(page)}
+                          className={`w-10 h-10 rounded-xl text-sm font-bold flex items-center justify-center transition-all ${
                             currentPage === page
                               ? "bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/30 border border-[#8b5cf6]"
                               : "border border-white/10 hover:bg-white/5 text-[#94a3b8]"
                           }`}
                         >
                           {page}
-                        </button>
+                        </Link>
                       ))}
                     </div>
 
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / PAGE_SIZE), prev + 1))}
-                      disabled={currentPage === Math.ceil(totalCount / PAGE_SIZE)}
-                      className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent"
-                    >
-                      Next →
-                    </button>
+                    {currentPage === Math.ceil(totalCount / PAGE_SIZE) ? (
+                      <span className="px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 opacity-40 select-none">
+                        Next →
+                      </span>
+                    ) : (
+                      <Link
+                        href={getPageUrl(currentPage + 1)}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5"
+                      >
+                        Next →
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
@@ -309,10 +295,11 @@ function JobsContent() {
   );
 }
 
-export default function JobsPage() {
+export default function JobsPage({ searchParams }: PageProps) {
   return (
     <Suspense fallback={<div className="pt-32 text-center text-white">Loading...</div>}>
-      <JobsContent />
+      <JobsContent searchParams={searchParams} />
     </Suspense>
   );
 }
+export const dynamic = "force-dynamic";

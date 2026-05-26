@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import { fetchNewsBySlug, News } from "../../../lib/api";
+import AdUnit from "@/components/AdUnit";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -272,10 +273,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
         <div className="md:col-span-2 hidden md:block">
           <div className="sticky top-32">
             <p className="text-[10px] text-center text-[#64748b] uppercase tracking-widest mb-2">Advertisement</p>
-            <div className="w-full h-[600px] bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-[#64748b] relative overflow-hidden">
-               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent -translate-y-full animate-[shimmer_3s_infinite]" />
-               AdSense Vertical (160x600)
-            </div>
+            <AdUnit slot="2779071234" format="vertical" style={{ minHeight: "600px" }} />
           </div>
         </div>
 

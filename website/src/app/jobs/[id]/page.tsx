@@ -2,6 +2,7 @@ import { fetchJobById, getHoursLeft } from "@/lib/api";
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import AdUnit from "@/components/AdUnit";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -152,9 +153,7 @@ export default async function JobDetailPage({ params }: Props) {
         </div>
 
         {/* Ad Slot */}
-        <div className="ad-slot mb-8" style={{ height: "120px" }}>
-          AdSense — Content Banner
-        </div>
+        <AdUnit slot="1569071234" format="horizontal" style={{ minHeight: "120px" }} />
 
         {/* Content & Sidebar */}
         <div className="grid md:grid-cols-3 gap-8">
@@ -196,9 +195,7 @@ export default async function JobDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="ad-slot" style={{ height: "250px" }}>
-              AdSense — Square
-            </div>
+            <AdUnit slot="2009071234" format="rectangle" style={{ minHeight: "250px" }} />
           </div>
         </div>
       </div>

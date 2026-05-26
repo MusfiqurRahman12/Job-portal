@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import PWAProvider from "@/components/PWAProvider";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -45,12 +46,24 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+
   return (
     <html
       lang="en"
       className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {adsenseClient && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
+      </head>
       <body className="min-h-full flex flex-col bg-[#06060a] text-white" suppressHydrationWarning>
         <PWAProvider>
           {children}

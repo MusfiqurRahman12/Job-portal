@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
+import AdUnit from "@/components/AdUnit";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -578,7 +579,7 @@ export default function Home() {
           ═══════════════════════════════════════════════ */}
       <section className="px-6 pb-8">
         <div className="max-w-5xl mx-auto">
-          <div className="ad-slot">AdSense — Leaderboard (728×90)</div>
+          <AdUnit slot="5819071234" format="horizontal" />
         </div>
       </section>
 
@@ -711,7 +712,7 @@ export default function Home() {
           ═══════════════════════════════════════════════ */}
       <section className="px-6 pb-8">
         <div className="max-w-5xl mx-auto">
-          <div className="ad-slot">AdSense — In-Feed (Responsive)</div>
+          <AdUnit slot="7149071234" format="fluid" />
         </div>
       </section>
 

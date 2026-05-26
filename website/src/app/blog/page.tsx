@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import { fetchNews, News } from "../../lib/api";
+import AdUnit from "@/components/AdUnit";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -214,10 +215,7 @@ export default function BlogPage() {
             </div>
 
             {/* Ad Slot */}
-            <div className="w-full h-[100px] rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#64748b] mb-16 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
-              AdSense — Content Banner (Responsive)
-            </div>
+            <AdUnit slot="2199071234" format="horizontal" style={{ minHeight: "100px", marginBottom: "4rem" }} />
 
             {/* Recent Posts Grid */}
             {blogPosts.length > 0 && (
