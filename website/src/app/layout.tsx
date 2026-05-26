@@ -27,6 +27,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "FutureTalent — Find Remote Jobs Worldwide | Work From Anywhere",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+  },
   description:
     "Discover the best remote jobs from around the world. Curated daily by AI. Engineering, Design, Marketing, and more — updated every 24 hours.",
   keywords: ["remote jobs", "work from home", "worldwide jobs", "remote engineering", "remote design", "futuretalent", "futuretalent.online"],
