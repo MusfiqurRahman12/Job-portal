@@ -91,7 +91,7 @@ func (r *RemoteOKScraper) Crawl() ([]shared.Job, error) {
 			remoteType = "country"
 		}
 
-		category := categorizeByTags(rj.Tags)
+		category := CategorizeJob(rj.Position, rj.Tags, "")
 
 		jobURL := rj.URL
 		if jobURL == "" {
@@ -127,22 +127,3 @@ func (r *RemoteOKScraper) Crawl() ([]shared.Job, error) {
 	return jobs, nil
 }
 
-// categorizeByTags determines a job category based on its tags
-func categorizeByTags(tags []string) string {
-	tagStr := strings.ToLower(strings.Join(tags, " "))
-
-	switch {
-	case strings.Contains(tagStr, "design") || strings.Contains(tagStr, "figma") || strings.Contains(tagStr, "ux"):
-		return "Design"
-	case strings.Contains(tagStr, "marketing") || strings.Contains(tagStr, "seo") || strings.Contains(tagStr, "growth"):
-		return "Marketing"
-	case strings.Contains(tagStr, "data") || strings.Contains(tagStr, "machine learning") || strings.Contains(tagStr, "ai"):
-		return "Data Science"
-	case strings.Contains(tagStr, "devops") || strings.Contains(tagStr, "sre") || strings.Contains(tagStr, "infrastructure"):
-		return "DevOps"
-	case strings.Contains(tagStr, "product") || strings.Contains(tagStr, "manager"):
-		return "Product"
-	default:
-		return "Engineering"
-	}
-}

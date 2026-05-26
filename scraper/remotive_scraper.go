@@ -94,7 +94,7 @@ func (r *RemotiveScraper) Crawl() ([]shared.Job, error) {
 			remoteType = "country"
 		}
 
-		category := mapRemotiveCategory(rj.Category)
+		category := CategorizeJob(rj.Title, rj.Tags, rj.Category)
 
 		postedAt := time.Now()
 		if rj.PublicationDate != "" {
@@ -134,35 +134,3 @@ func (r *RemotiveScraper) Crawl() ([]shared.Job, error) {
 	return jobs, nil
 }
 
-// mapRemotiveCategory maps Remotive's category strings to our standard categories
-func mapRemotiveCategory(cat string) string {
-	catLower := strings.ToLower(cat)
-	switch {
-	case strings.Contains(catLower, "software") || strings.Contains(catLower, "dev"):
-		return "Engineering"
-	case strings.Contains(catLower, "design"):
-		return "Design"
-	case strings.Contains(catLower, "marketing"):
-		return "Marketing"
-	case strings.Contains(catLower, "data"):
-		return "Data Science"
-	case strings.Contains(catLower, "devops") || strings.Contains(catLower, "sysadmin"):
-		return "DevOps"
-	case strings.Contains(catLower, "product"):
-		return "Product"
-	case strings.Contains(catLower, "customer") || strings.Contains(catLower, "support"):
-		return "Customer Support"
-	case strings.Contains(catLower, "sales") || strings.Contains(catLower, "business"):
-		return "Sales"
-	case strings.Contains(catLower, "writing") || strings.Contains(catLower, "content"):
-		return "Writing"
-	case strings.Contains(catLower, "hr") || strings.Contains(catLower, "human"):
-		return "HR"
-	case strings.Contains(catLower, "finance") || strings.Contains(catLower, "legal"):
-		return "Finance"
-	case strings.Contains(catLower, "qa") || strings.Contains(catLower, "testing"):
-		return "QA"
-	default:
-		return "Engineering"
-	}
-}

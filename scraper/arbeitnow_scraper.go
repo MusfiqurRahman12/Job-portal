@@ -113,7 +113,7 @@ func (a *ArbeitnowScraper) Crawl() ([]shared.Job, error) {
 				remoteType = "country"
 			}
 
-			category := categorizeByTags(aj.Tags)
+			category := CategorizeJob(aj.Title, aj.Tags, "")
 
 			postedAt := time.Now()
 			if aj.CreatedAt > 0 {

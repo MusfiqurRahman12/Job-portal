@@ -104,7 +104,7 @@ func (w *WWRScraper) Crawl() ([]shared.Job, error) {
 		}
 
 		// Map WWR category to our standard categories
-		category := mapWWRCategory(item.Category)
+		category := CategorizeJob(title, nil, item.Category)
 
 		postedAt := time.Now()
 		if item.PubDate != "" {
@@ -149,31 +149,3 @@ func (w *WWRScraper) Crawl() ([]shared.Job, error) {
 	return jobs, nil
 }
 
-// mapWWRCategory maps WWR's category strings to our standard categories
-func mapWWRCategory(cat string) string {
-	catLower := strings.ToLower(cat)
-	switch {
-	case strings.Contains(catLower, "programming") || strings.Contains(catLower, "software") || strings.Contains(catLower, "back-end") || strings.Contains(catLower, "front-end") || strings.Contains(catLower, "full-stack"):
-		return "Engineering"
-	case strings.Contains(catLower, "design"):
-		return "Design"
-	case strings.Contains(catLower, "marketing") || strings.Contains(catLower, "copywriting"):
-		return "Marketing"
-	case strings.Contains(catLower, "data") || strings.Contains(catLower, "machine learning"):
-		return "Data Science"
-	case strings.Contains(catLower, "devops") || strings.Contains(catLower, "sysadmin"):
-		return "DevOps"
-	case strings.Contains(catLower, "product"):
-		return "Product"
-	case strings.Contains(catLower, "customer") || strings.Contains(catLower, "support"):
-		return "Customer Support"
-	case strings.Contains(catLower, "sales") || strings.Contains(catLower, "business"):
-		return "Sales"
-	case strings.Contains(catLower, "hr") || strings.Contains(catLower, "recruiting"):
-		return "HR"
-	case strings.Contains(catLower, "finance") || strings.Contains(catLower, "legal"):
-		return "Finance"
-	default:
-		return "Engineering"
-	}
-}
