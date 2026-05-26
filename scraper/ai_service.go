@@ -14,28 +14,57 @@ import (
 )
 
 type AIService struct {
-	apiKey      string
+	apiKeys     []string
+	keyIdx      int
 	lastRequest time.Time
 	mu          sync.Mutex
 }
 
 func NewAIService(apiKey string) *AIService {
-	return &AIService{apiKey: apiKey}
+	var keys []string
+	for _, k := range strings.Split(apiKey, ",") {
+		k = strings.TrimSpace(k)
+		if k != "" {
+			keys = append(keys, k)
+		}
+	}
+	return &AIService{
+		apiKeys: keys,
+	}
 }
 
-// callGemini handles rate-limiting and robust retries with backoff for the Gemini API
-func (ai *AIService) callGemini(prompt string, generationConfig map[string]interface{}) ([]byte, error) {
+// getNextKey implements key rotation and spacing logic
+func (ai *AIService) getNextKey() string {
 	ai.mu.Lock()
-	// Enforce 12 seconds spacing between requests to safely stay within the 5 RPM free tier limit
+	defer ai.mu.Unlock()
+
+	if len(ai.apiKeys) == 0 {
+		return ""
+	}
+
+	// Dynamic spacing based on number of keys to optimize throughput
+	// 1 key = 12s spacing, 2 keys = 6s spacing, etc. (minimum 1 second)
+	spacing := 12 * time.Second / time.Duration(len(ai.apiKeys))
+	if spacing < 1*time.Second {
+		spacing = 1 * time.Second
+	}
+
 	elapsed := time.Since(ai.lastRequest)
-	if elapsed < 12*time.Second {
-		sleepDur := 12*time.Second - elapsed
-		log.Printf("[AI] Rate limiting: spacing requests. Sleeping for %v...", sleepDur)
+	if elapsed < spacing {
+		sleepDur := spacing - elapsed
+		log.Printf("[AI] Spacing requests across %d keys. Sleeping for %v...", len(ai.apiKeys), sleepDur)
 		time.Sleep(sleepDur)
 	}
 	ai.lastRequest = time.Now()
-	ai.mu.Unlock()
 
+	// Rotate and return next key
+	key := ai.apiKeys[ai.keyIdx]
+	ai.keyIdx = (ai.keyIdx + 1) % len(ai.apiKeys)
+	return key
+}
+
+// callGemini handles rotating API keys and robust retries
+func (ai *AIService) callGemini(prompt string, generationConfig map[string]interface{}) ([]byte, error) {
 	reqBody := map[string]interface{}{
 		"contents": []map[string]interface{}{
 			{
@@ -52,11 +81,23 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 		return nil, fmt.Errorf("failed to encode gemini request: %w", err)
 	}
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s", ai.apiKey)
-
 	var respBody []byte
 	var lastErr error
-	for attempt := 1; attempt <= 3; attempt++ {
+	
+	// Retry loop allows rotating through all keys twice if rate-limited
+	maxAttempts := len(ai.apiKeys) * 2
+	if maxAttempts < 3 {
+		maxAttempts = 3
+	}
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		key := ai.getNextKey()
+		if key == "" {
+			return nil, fmt.Errorf("no gemini API keys configured")
+		}
+
+		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s", key)
+
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create gemini request: %w", err)
@@ -67,12 +108,12 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 		resp, err := client.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("failed to call gemini api: %w", err)
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 			continue
 		}
-		defer resp.Body.Close()
-
+		
 		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close() // Close body immediately to avoid resource leaks
 		if err != nil {
 			lastErr = fmt.Errorf("failed to read gemini response body: %w", err)
 			continue
@@ -81,9 +122,8 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 		if resp.StatusCode != 200 {
 			lastErr = fmt.Errorf("gemini API error: %d - %s", resp.StatusCode, string(body))
 			if resp.StatusCode == 429 || resp.StatusCode == 503 {
-				backoff := time.Duration(attempt*15) * time.Second
-				log.Printf("[AI] Received status %d. Retrying attempt %d/3 in %v...", resp.StatusCode, attempt, backoff)
-				time.Sleep(backoff)
+				log.Printf("[AI] Key %d returned status %d. Rotating to next key (attempt %d/%d)...", (ai.keyIdx-1+len(ai.apiKeys))%len(ai.apiKeys), resp.StatusCode, attempt, maxAttempts)
+				time.Sleep(1 * time.Second)
 				continue
 			}
 			return nil, lastErr
@@ -102,7 +142,7 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 
 // OptimizeJob content for SEO using AI
 func (ai *AIService) OptimizeJob(job *shared.Job) error {
-	if ai.apiKey == "" {
+	if len(ai.apiKeys) == 0 {
 		return nil // Skip if no API key
 	}
 
@@ -164,7 +204,7 @@ Original Job Description:
 
 // OptimizeNews rewrites raw news snippets into engaging remote work blog posts using AI
 func (ai *AIService) OptimizeNews(art *shared.News) error {
-	if ai.apiKey == "" {
+	if len(ai.apiKeys) == 0 {
 		return nil // Skip if no API key
 	}
 
@@ -257,4 +297,3 @@ Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JS
 
 	return nil
 }
-
