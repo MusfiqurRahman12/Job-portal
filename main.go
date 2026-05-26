@@ -75,6 +75,11 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine.AddScraper(scraper.NewRemoteOKScraper())   // RemoteOK (JSON API)
 	engine.AddScraper(scraper.NewRemotiveScraper())   // Remotive (JSON API)
 	engine.AddScraper(scraper.NewArbeitnowScraper())  // Arbeitnow (JSON API)
+	
+	// New standard RSS Job boards
+	engine.AddScraper(scraper.NewRSSJobScraper("Himalayas", "https://himalayas.app/jobs/rss"))
+	engine.AddScraper(scraper.NewRSSJobScraper("Jobspresso", "https://jobspresso.co/feed/?post_type=job_listing"))
+	engine.AddScraper(scraper.NewRSSJobScraper("CryptoJobsList", "https://cryptojobslist.com/jobs.rss"))
 
 	// Register all news/blog RSS scrapers
 	engine.AddNewsScraper(scraper.NewRSSScraper("Sorry I Was On Mute", "https://sorryonmute.com/feed/"))
