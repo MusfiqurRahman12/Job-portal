@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"fmt"
 	"job-portal-crawler/shared"
 	"log"
 	"sync"
@@ -143,13 +144,21 @@ func (e *Engine) processJob(job shared.Job) {
 	}
 
 	// 3. Save Gemini-rewritten job to Database
-	err := e.db.SaveJob(job)
+	jobID, err := e.db.SaveJob(job)
 	if err != nil {
 		log.Printf("Error saving job from %s: %v", job.Source, err)
 		return
 	}
 
 	log.Printf("✅ Saved job: [%s] at %s from %s", job.Title, job.Company, job.Source)
+
+	// 4. Notify Google Indexing API of the new/updated job URL
+	go func(id int64) {
+		jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d", id)
+		if err := NotifyGoogleIndexing(jobURL, "URL_UPDATED"); err != nil {
+			log.Printf("[Indexing] ⚠️ Google Indexing API update failed for %s: %v", jobURL, err)
+		}
+	}(jobID)
 }
 
 func (e *Engine) processNews(art shared.News) {

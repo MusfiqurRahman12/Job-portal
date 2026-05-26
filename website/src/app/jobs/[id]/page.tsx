@@ -1,75 +1,105 @@
-"use client";
-
-import { useEffect, useState, use } from "react";
-import { fetchJobById, Job, getHoursLeft } from "@/lib/api";
+import { fetchJobById, getHoursLeft } from "@/lib/api";
 import Link from "next/link";
+import { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
-  const [job, setJob] = useState<Job | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface Props {
+  params: Promise<{ id: string }>;
+}
 
-  useEffect(() => {
-    async function loadJob() {
-      try {
-        const data = await fetchJobById(id);
-        setJob(data);
-      } catch (err) {
-        // Fallback for demo
-        console.error("API failed, using mock data for demo", err);
-        setJob({
-          id: id,
-          title: "Mock AI/ML Engineer",
-          company: "Demo Corp",
-          company_logo: "D",
-          location: "Remote Worldwide",
-          description: "## About the Role\n\nThis is a mock description because the Go API is not running. We are looking for an amazing engineer to join our team...\n\n### Requirements\n\n- React\n- Go\n- PostgreSQL",
-          source: "RemoteHub",
-          url: "#",
-          remote_type: "worldwide",
-          category: "Engineering",
-          tags: ["Go", "React"],
-          salary: "$120k",
-          posted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 24 * 3600000).toISOString(),
-          created_at: new Date().toISOString(),
-          is_active: true,
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadJob();
-  }, [id]);
+// Generate dynamic metadata for search engines and social links (open graph)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const resolvedParams = await params;
+  try {
+    const job = await fetchJobById(resolvedParams.id);
+    const title = `${job.title} at ${job.company} | Remote Jobs`;
+    const description = `Apply for ${job.title} at ${job.company} (${job.location}). Category: ${job.category}. Salary: ${job.salary || "Competitive"}.`;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-32 pb-16 px-6 flex justify-center text-white">
-        Loading job details...
-      </div>
-    );
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: "article",
+      },
+    };
+  } catch (err) {
+    return {
+      title: "Job Details | FutureTalent",
+    };
   }
+}
 
-  if (!job) {
-    return (
-      <div className="min-h-screen pt-32 pb-16 px-6 text-center text-white">
-        <h1 className="text-3xl font-bold mb-4">Job Not Found</h1>
-        <p className="mb-8">This job may have expired or been removed.</p>
-        <Link href="/" className="px-5 py-2 rounded-xl glass-card text-white hover:bg-white/10">
-          ← Back to Jobs
-        </Link>
-      </div>
-    );
+// Helper to deduce employment type for Google Jobs schema requirements
+function getEmploymentType(title: string, desc: string): string {
+  const text = (title + " " + desc).toLowerCase();
+  if (text.includes("contract") || text.includes("freelance") || text.includes("contractor")) {
+    return "CONTRACT";
+  }
+  if (text.includes("intern") || text.includes("apprenticeship") || text.includes("internship")) {
+    return "INTERN";
+  }
+  if (text.includes("part-time") || text.includes("part time")) {
+    return "PART_TIME";
+  }
+  return "FULL_TIME"; // Default fallback
+}
+
+export default async function JobDetailPage({ params }: Props) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+
+  let job;
+  try {
+    job = await fetchJobById(id);
+  } catch (err) {
+    console.error("Job details loading failed, rendering not found page:", err);
+    notFound();
   }
 
   const hoursLeft = getHoursLeft(job.expires_at);
 
+  // Generate Google Jobs schema structure (JSON-LD)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    "title": job.title,
+    "description": formatMarkdown(job.description),
+    "datePosted": job.posted_at || job.created_at,
+    "validThrough": job.expires_at,
+    "employmentType": getEmploymentType(job.title, job.description),
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": job.company,
+      "logo": job.company_logo && job.company_logo.length > 1 && job.company_logo.startsWith("http") ? job.company_logo : undefined,
+    },
+    "jobLocationType": job.remote_type === "worldwide" || job.location?.toLowerCase().includes("remote") ? "TELECOMMUTE" : undefined,
+    "applicantLocationRequirements": job.remote_type === "worldwide" || job.location?.toLowerCase().includes("remote") ? {
+      "@type": "Country",
+      "name": job.location || "Worldwide"
+    } : undefined,
+    "baseSalary": job.salary ? {
+      "@type": "MonetaryAmount",
+      "currency": "USD",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": job.salary,
+        "unitText": "YEAR"
+      }
+    } : undefined,
+  };
+
   return (
     <div className="min-h-screen pt-32 pb-16 px-6 relative z-10">
+      {/* Inject Google Jobs Search Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <div className="max-w-4xl mx-auto">
-        <Link href="/" className="inline-block text-[#94a3b8] hover:text-white mb-8 transition-colors">
+        <Link href="/jobs" className="inline-block text-[#94a3b8] hover:text-white mb-8 transition-colors">
           ← Back to all jobs
         </Link>
 
@@ -147,7 +177,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 Apply for this role ↗
               </a>
             </div>
-            
+
             <div className="glass-card p-6">
               <h3 className="text-lg font-bold text-white mb-3">Job Overview</h3>
               <div className="space-y-3 text-sm">
@@ -165,7 +195,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
               </div>
             </div>
-            
+
             <div className="ad-slot" style={{ height: "250px" }}>
               AdSense — Square
             </div>
@@ -176,22 +206,21 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   );
 }
 
-// Very basic markdown to HTML for fallback (since we don't have a markdown library installed yet)
+// Markdown formatting utility for Server Component rendering
 function formatMarkdown(text: string) {
   if (!text) return "";
-  
-  let html = text
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\*(.*)\*/gim, '<em>$1</em>')
-    .replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2' target='_blank'>$1</a>")
-    .replace(/\n$/gim, '<br />');
 
-  // Basic list formatting
-  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
-  html = html.replace(/<\/li>\n<li>/gim, '</li><li>');
-  
+  let html = text
+    .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+    .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+    .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+    .replace(/\*\*(.*)\*\*/gim, "<strong>$1</strong>")
+    .replace(/\*(.*)\*/gim, "<em>$1</em>")
+    .replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2' target='_blank'>$1</a>")
+    .replace(/\n$/gim, "<br />");
+
+  html = html.replace(/^\- (.*$)/gim, "<li>$1</li>");
+  html = html.replace(/<\/li>\n<li>/gim, "</li><li>");
+
   return html.replace(/\n/g, "<br/>");
 }

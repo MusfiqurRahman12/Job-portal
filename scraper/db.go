@@ -29,8 +29,8 @@ func NewDB(connStr string) (*DB, error) {
 	return &DB{conn: db}, nil
 }
 
-// SaveJob inserts a new job with automatic 24-hour expiration
-func (db *DB) SaveJob(job shared.Job) error {
+// SaveJob inserts a new job with automatic 24-hour expiration and returns its ID
+func (db *DB) SaveJob(job shared.Job) (int64, error) {
 	// Set expiration if not already set
 	if job.ExpiresAt.IsZero() {
 		job.SetExpiration()
@@ -46,8 +46,10 @@ func (db *DB) SaveJob(job shared.Job) error {
 			posted_at = EXCLUDED.posted_at,
 			expires_at = EXCLUDED.expires_at,
 			is_active = TRUE
+		RETURNING id
 	`
-	_, err := db.conn.Exec(query,
+	var insertedID int64
+	err := db.conn.QueryRow(query,
 		job.Title,
 		job.Company,
 		job.CompanyLogo,
@@ -62,22 +64,37 @@ func (db *DB) SaveJob(job shared.Job) error {
 		job.PostedAt,
 		job.ExpiresAt,
 		job.IsActive,
-	)
-	return err
+	).Scan(&insertedID)
+	
+	if err != nil {
+		return 0, err
+	}
+	return insertedID, nil
 }
 
-// CleanExpiredJobs marks jobs as inactive when they pass the 24-hour window
-func (db *DB) CleanExpiredJobs() (int64, error) {
+// CleanExpiredJobs marks jobs as inactive when they pass the 24-hour window and returns deactivated job IDs
+func (db *DB) CleanExpiredJobs() ([]int64, error) {
 	query := `
 		UPDATE jobs 
 		SET is_active = FALSE 
 		WHERE is_active = TRUE AND expires_at < $1
+		RETURNING id
 	`
-	result, err := db.conn.Exec(query, time.Now())
+	rows, err := db.conn.Query(query, time.Now())
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected()
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 // DeleteExpiredJobs permanently removes jobs that expired more than 7 days ago
@@ -230,11 +247,19 @@ func (db *DB) StartCleanupScheduler(stop chan struct{}) {
 }
 
 func (db *DB) runCleanup() {
-	deactivated, err := db.CleanExpiredJobs()
+	deactivatedIDs, err := db.CleanExpiredJobs()
 	if err != nil {
 		log.Printf("Error cleaning expired jobs: %v", err)
-	} else if deactivated > 0 {
-		log.Printf("Deactivated %d expired jobs", deactivated)
+	} else if len(deactivatedIDs) > 0 {
+		log.Printf("Deactivated %d expired jobs", len(deactivatedIDs))
+		for _, id := range deactivatedIDs {
+			go func(jobID int64) {
+				jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d", jobID)
+				if err := NotifyGoogleIndexing(jobURL, "URL_DELETED"); err != nil {
+					log.Printf("[Indexing] ⚠️ Google Indexing API deletion failed for %s: %v", jobURL, err)
+				}
+			}(id)
+		}
 	}
 
 	deleted, err := db.DeleteExpiredJobs()
