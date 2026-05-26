@@ -31,3 +31,7 @@ demo_recording.webp
 fixed_animations_demo_*.webp
 website_preview_*.webp
 *.webp
+
+# Credentials (Google Indexing API)
+google-credentials.json
+scraper/google-credentials.json
