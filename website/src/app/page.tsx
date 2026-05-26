@@ -147,26 +147,19 @@ export default function Home() {
 
     setSubStatus("loading");
     try {
-      // Check if email already exists
-      const { data: existing, error: checkError } = await supabase
-        .from("subscribers")
-        .select("email")
-        .eq("email", email.trim().toLowerCase())
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (existing) {
-        setSubStatus("exists");
-        return;
-      }
-
-      // Insert new subscriber
+      // Direct insert for security (no SELECT permission needed)
       const { error: insertError } = await supabase
         .from("subscribers")
         .insert([{ email: email.trim().toLowerCase() }]);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        // PostgreSQL code 23505 is a unique violation (email already exists)
+        if (insertError.code === "23505") {
+          setSubStatus("exists");
+          return;
+        }
+        throw insertError;
+      }
 
       setSubStatus("success");
       setEmail("");
