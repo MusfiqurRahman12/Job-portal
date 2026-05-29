@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"golang.org/x/oauth2"
@@ -103,4 +104,18 @@ func NotifyGoogleIndexing(jobURL string, actionType string) error {
 
 	log.Printf("[Indexing] 🚀 Successfully sent URL notification (%s) for: %s", actionType, jobURL)
 	return nil
+}
+
+var nonAlphanumericRegexp = regexp.MustCompile(`[^\w\s\-]`)
+var whitespaceRegexp = regexp.MustCompile(`[\s_]+`)
+var multipleDashesRegexp = regexp.MustCompile(`\-+`)
+
+// Slugify formats a text into a clean, URL-friendly slug.
+func Slugify(text string) string {
+	text = strings.ToLower(text)
+	text = strings.ReplaceAll(text, "&", "and")
+	text = nonAlphanumericRegexp.ReplaceAllString(text, "")
+	text = whitespaceRegexp.ReplaceAllString(text, "-")
+	text = multipleDashesRegexp.ReplaceAllString(text, "-")
+	return strings.Trim(text, "-")
 }

@@ -70,10 +70,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .hero-section {
   position: relative;
-  min-height: 100vh;
+  min-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    min-height: auto;
+  }
 }
 
 .hero-bg-grid {
@@ -149,8 +155,14 @@ h1, h2, h3, h4, h5, h6 {
    ═══════════════════════════════════════════════════════ */
 
 .job-card {
-  padding: 1.5rem 2rem;
+  padding: 1.25rem;
   cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .job-card {
+    padding: 1.5rem 2rem;
+  }
 }
 
 .job-card .company-avatar {

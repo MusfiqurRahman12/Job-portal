@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, use } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
-import { fetchNewsBySlug, News } from "../../../lib/api";
+import { fetchNewsBySlug, fetchNews, News } from "../../../lib/api";
 import AdUnit from "@/components/AdUnit";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -14,6 +14,7 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
   const slug = resolvedParams.slug;
 
   const [article, setArticle] = useState<News | null>(null);
+  const [nextArticle, setNextArticle] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -26,9 +27,23 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
       try {
         const data = await fetchNewsBySlug(slug);
         setArticle(data);
+
+        // Fetch all articles and find the next one after the current
+        try {
+          const allNews = await fetchNews(50, 0);
+          const currentIndex = allNews.news.findIndex((n) => n.slug === slug);
+          if (currentIndex !== -1 && currentIndex < allNews.news.length - 1) {
+            setNextArticle(allNews.news[currentIndex + 1]);
+          } else if (allNews.news.length > 0) {
+            // Wrap around to the first article if we're at the end
+            const fallback = allNews.news.find((n) => n.slug !== slug);
+            if (fallback) setNextArticle(fallback);
+          }
+        } catch {
+          // Non-critical — if fetching next article fails, the section just links to /blog
+        }
       } catch (err) {
         console.error("API failed to load article, using fallback mock for display", err);
-        // Robust fallback so the page always looks stunning even during offline/setup
         setArticle({
           id: 0,
           title: slug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
@@ -194,7 +209,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
       </nav>
 
       {/* Hero Section */}
-      <div className="pt-32 pb-16 px-6 max-w-4xl mx-auto" ref={heroRef}>
+      <div className="pt-24 md:pt-32 pb-8 md:pb-12 px-4 md:px-6 max-w-4xl mx-auto" ref={heroRef}>
         <div className="article-meta flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-[#94a3b8] mb-8">
           <span className="text-[#34d399] uppercase tracking-wider">{article.category}</span>
           <span>•</span>
@@ -203,11 +218,11 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
           <span>4 min read</span>
         </div>
         
-        <h1 className="article-title text-4xl md:text-6xl lg:text-7xl font-bold text-center text-white leading-tight mb-16 font-serif">
+        <h1 className="article-title text-4xl md:text-6xl lg:text-7xl font-bold text-center text-white leading-tight mb-8 md:mb-12 font-serif">
           {article.title}
         </h1>
 
-        <div className="hero-image-container relative w-full h-[400px] md:h-[600px] rounded-3xl overflow-hidden mb-16 shadow-2xl shadow-[#34d399]/10 border border-white/5">
+        <div className="hero-image-container relative w-full h-[250px] sm:h-[400px] md:h-[550px] rounded-3xl overflow-hidden mb-8 md:mb-12 shadow-2xl shadow-[#34d399]/10 border border-white/5">
           <img 
             src={article.image} 
             alt="Hero" 
@@ -217,7 +232,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
       </div>
 
       {/* Main Content & Sidebar */}
-      <div className="max-w-6xl mx-auto px-6 pb-32 grid md:grid-cols-12 gap-12 relative" ref={articleRef}>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pb-16 md:pb-24 grid md:grid-cols-12 gap-6 md:gap-12 relative" ref={articleRef}>
         
         {/* Left Sidebar (Author & Sharing) - Sticky */}
         <div className="md:col-span-3 hidden md:block">
@@ -280,11 +295,20 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
       </div>
 
       {/* Next Article Footer */}
-      <div className="border-t border-white/10 bg-black/50 py-24 px-6 text-center">
+      <div className="border-t border-white/10 bg-black/50 py-12 md:py-20 px-6 text-center">
         <p className="text-[#34d399] font-bold uppercase tracking-widest text-sm mb-4">Read Next</p>
-        <Link href="/blog" className="text-3xl md:text-5xl font-serif text-white hover:text-gray-300 transition-colors inline-block max-w-3xl">
-          Back to remote work pulse directory →
-        </Link>
+        {nextArticle ? (
+          <Link href={`/blog/${nextArticle.slug}`} className="group inline-block max-w-3xl">
+            <h3 className="text-3xl md:text-5xl font-serif text-white group-hover:text-[#34d399] transition-colors leading-tight">
+              {nextArticle.title} →
+            </h3>
+            <p className="text-[#94a3b8] mt-4 text-lg">{nextArticle.excerpt}</p>
+          </Link>
+        ) : (
+          <Link href="/blog" className="text-3xl md:text-5xl font-serif text-white hover:text-[#34d399] transition-colors inline-block max-w-3xl">
+            Explore more articles →
+          </Link>
+        )}
       </div>
 
     </div>

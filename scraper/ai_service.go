@@ -96,7 +96,7 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 			return nil, fmt.Errorf("no gemini API keys configured")
 		}
 
-		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s", key)
+		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=%s", key)
 
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 		if err != nil {
@@ -293,6 +293,151 @@ Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JS
 		art.GenerateSlug()
 		art.AssignFallbackImage()
 		log.Printf("[AI] Optimized News: %s [%s] -> Slug: %s", art.Title, art.Category, art.Slug)
+	}
+
+	return nil
+}
+
+// OptimizeJobsBatch optimizes multiple jobs in a single API call to conserve quota
+func (ai *AIService) OptimizeJobsBatch(jobs []*shared.Job) error {
+	if len(ai.apiKeys) == 0 || len(jobs) == 0 {
+		return nil
+	}
+
+	log.Printf("[AI] Batch optimizing %d jobs...", len(jobs))
+
+	var sb strings.Builder
+	sb.WriteString("Rewrite each job posting below into professional, SEO-friendly markdown with sections: About, Responsibilities, Requirements. Keep all facts. Respond with a JSON array of strings, one per job, same order.\n")
+
+	for i, j := range jobs {
+		// Truncate very long descriptions to save tokens
+		desc := j.Description
+		if len(j.Description) > 1500 {
+			desc = desc[:1500] + "..."
+		}
+		sb.WriteString(fmt.Sprintf("\n--- JOB %d ---\n%s\n", i, desc))
+	}
+
+	genConfig := map[string]interface{}{
+		"temperature": 0.7,
+		"responseMimeType": "application/json",
+	}
+
+	body, err := ai.callGemini(sb.String(), genConfig)
+	if err != nil {
+		return err
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return fmt.Errorf("failed to decode gemini response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		rawText := geminiResp.Candidates[0].Content.Parts[0].Text
+		var results []string
+		if err := json.Unmarshal([]byte(rawText), &results); err != nil {
+			return fmt.Errorf("failed to parse structured AI output as JSON array: %w. Raw: %s", err, rawText)
+		}
+
+		if len(results) != len(jobs) {
+			return fmt.Errorf("AI returned %d results, expected %d", len(results), len(jobs))
+		}
+
+		for i, j := range jobs {
+			desc := strings.TrimSpace(results[i])
+			desc = strings.TrimPrefix(desc, "```markdown")
+			desc = strings.TrimPrefix(desc, "```")
+			desc = strings.TrimSuffix(desc, "```")
+			j.Description = strings.TrimSpace(desc)
+			log.Printf("[AI] Successfully optimized (batch): %s", j.Title)
+		}
+	}
+
+	return nil
+}
+
+type AIArticle struct {
+	Title    string `json:"title"`
+	Category string `json:"category"`
+	Excerpt  string `json:"excerpt"`
+	Content  string `json:"content"`
+}
+
+// OptimizeNewsBatch rewrites multiple news snippets in a single API call
+func (ai *AIService) OptimizeNewsBatch(articles []*shared.News) error {
+	if len(ai.apiKeys) == 0 || len(articles) == 0 {
+		return nil
+	}
+
+	log.Printf("[AI] Batch optimizing %d news articles...", len(articles))
+
+	var sb strings.Builder
+	sb.WriteString("Rewrite each article snippet into a ~200 word professional tech blog post. Classify into one of: Remote Work, Tech, Career, Productivity, Future of Work. Respond with a JSON array of objects with keys: title, category, excerpt, content.\n")
+
+	for i, art := range articles {
+		snippet := art.Content
+		if len(snippet) > 1000 {
+			snippet = snippet[:1000] + "..."
+		}
+		sb.WriteString(fmt.Sprintf("\n--- ARTICLE %d ---\nTitle: %s\nSnippet: %s\n", i, art.Title, snippet))
+	}
+
+	genConfig := map[string]interface{}{
+		"temperature": 0.7,
+		"responseMimeType": "application/json",
+	}
+
+	body, err := ai.callGemini(sb.String(), genConfig)
+	if err != nil {
+		return err
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return fmt.Errorf("failed to decode gemini response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		rawText := geminiResp.Candidates[0].Content.Parts[0].Text
+		var results []AIArticle
+		if err := json.Unmarshal([]byte(rawText), &results); err != nil {
+			return fmt.Errorf("failed to parse structured AI output as JSON array: %w. Raw: %s", err, rawText)
+		}
+
+		if len(results) != len(articles) {
+			return fmt.Errorf("AI returned %d articles, expected %d", len(results), len(articles))
+		}
+
+		for i, art := range articles {
+			parsed := results[i]
+			if parsed.Title != "" { art.Title = parsed.Title }
+			if parsed.Category != "" { art.Category = parsed.Category }
+			if parsed.Excerpt != "" { art.Excerpt = parsed.Excerpt }
+			if parsed.Content != "" { art.Content = parsed.Content }
+			
+			art.GenerateSlug()
+			art.AssignFallbackImage()
+			log.Printf("[AI] Optimized News (batch): %s [%s] -> Slug: %s", art.Title, art.Category, art.Slug)
+		}
 	}
 
 	return nil

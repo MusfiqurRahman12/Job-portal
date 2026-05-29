@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount } from "@/lib/api";
+import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount, slugify } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import AdUnit from "@/components/AdUnit";
 
@@ -15,13 +15,41 @@ gsap.registerPlugin(ScrollTrigger);
    MOCK DATA — Replace with API calls to your Go backend
    ═══════════════════════════════════════════════════════ */
 
+const CATEGORY_DETAILS: Record<string, { icon: string; color: string }> = {
+  "Frontend Development": { icon: "🎨", color: "#ec4899" },
+  "Backend Development": { icon: "⚙️", color: "#8b5cf6" },
+  "Fullstack Development": { icon: "⚡", color: "#f59e0b" },
+  "Cloud & DevOps": { icon: "☁️", color: "#22d3ee" },
+  "Cybersecurity": { icon: "🛡️", color: "#dc2626" },
+  "AI & Machine Learning": { icon: "🤖", color: "#6366f1" },
+  "Mobile Development": { icon: "📱", color: "#10b981" },
+  "Data Science & Analytics": { icon: "🧠", color: "#34d399" },
+  "QA & Testing": { icon: "✅", color: "#f97316" },
+  "Product Management": { icon: "🚀", color: "#eab308" },
+  "Design & Creative": { icon: "🎨", color: "#ec4899" },
+  "Marketing & Sales": { icon: "📢", color: "#f59e0b" },
+  "Customer Support": { icon: "🎧", color: "#22d3ee" },
+  "Writing & Content": { icon: "✍️", color: "#8b5cf6" },
+  "HR & Operations": { icon: "👥", color: "#34d399" },
+  "General": { icon: "💼", color: "#94a3b8" }
+};
+
 const CATEGORIES = [
-  { name: "Engineering", icon: "⚡", count: 2340, color: "#8b5cf6" },
-  { name: "Design", icon: "🎨", count: 891, color: "#ec4899" },
-  { name: "Marketing", icon: "📈", count: 1205, color: "#f59e0b" },
-  { name: "Product", icon: "🚀", count: 734, color: "#22d3ee" },
-  { name: "Data Science", icon: "🧠", count: 567, color: "#34d399" },
-  { name: "DevOps", icon: "🔧", count: 423, color: "#f97316" },
+  { name: "Frontend Development", icon: "🎨", count: 1205, color: "#ec4899" },
+  { name: "Backend Development", icon: "⚙️", count: 1540, color: "#8b5cf6" },
+  { name: "Fullstack Development", icon: "⚡", count: 2340, color: "#f59e0b" },
+  { name: "Cloud & DevOps", icon: "☁️", count: 423, color: "#22d3ee" },
+  { name: "Cybersecurity", icon: "🛡️", count: 320, color: "#dc2626" },
+  { name: "AI & Machine Learning", icon: "🤖", count: 450, color: "#6366f1" },
+  { name: "Mobile Development", icon: "📱", count: 620, color: "#10b981" },
+  { name: "Data Science & Analytics", icon: "🧠", count: 567, color: "#34d399" },
+  { name: "QA & Testing", icon: "✅", count: 210, color: "#f97316" },
+  { name: "Product Management", icon: "🚀", count: 734, color: "#eab308" },
+  { name: "Design & Creative", icon: "🎨", count: 891, color: "#ec4899" },
+  { name: "Marketing & Sales", icon: "📢", count: 1205, color: "#f59e0b" },
+  { name: "Customer Support", icon: "🎧", count: 512, color: "#22d3ee" },
+  { name: "Writing & Content", icon: "✍️", count: 340, color: "#8b5cf6" },
+  { name: "HR & Operations", icon: "👥", count: 280, color: "#34d399" }
 ];
 
 const JOBS = [
@@ -95,9 +123,15 @@ const TICKER_ITEMS = [
   "AI-Curated Listings",
   "Updated Every 24 Hours",
   "1,205 Marketing Positions",
-  "100% Remote Verified",
+  "Remote · Hybrid · On-Site",
   "567 Data Science Openings",
 ];
+
+const WORKPLACE_BADGES: Record<string, { label: string; icon: string; color: string }> = {
+  remote: { label: "Remote", icon: "🏠", color: "#34d399" },
+  hybrid: { label: "Hybrid", icon: "🔄", color: "#f59e0b" },
+  onsite: { label: "On-Site", icon: "🏢", color: "#6366f1" },
+};
 
 /* ═══════════════════════════════════════════════════════
    HELPER: Expiration Badge
@@ -113,6 +147,50 @@ function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
     cls = "expire-badge expiring";
   }
   return <span className={cls}>{label}</span>;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATED STAT COMPONENT
+   ═══════════════════════════════════════════════════════ */
+function AnimatedStat({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const elRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!elRef.current || value === 0) return;
+    
+    const ctx = gsap.context(() => {
+      ScrollTrigger.create({
+        trigger: elRef.current,
+        start: "top 90%",
+        onEnter: () => {
+          gsap.fromTo(
+            elRef.current,
+            { textContent: "0" },
+            {
+              textContent: value,
+              duration: 2,
+              ease: "power2.out",
+              snap: { textContent: 1 },
+              onUpdate: function () {
+                const val = Math.round(parseFloat(gsap.getProperty(elRef.current, "textContent") as string));
+                if (elRef.current) {
+                  elRef.current.textContent = val.toLocaleString() + suffix;
+                }
+              },
+            }
+          );
+        },
+        once: true,
+      });
+    });
+    return () => ctx.revert();
+  }, [value, suffix]);
+
+  return (
+    <div className="stat-number" ref={elRef}>
+      0
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -132,6 +210,8 @@ export default function Home() {
 
   const [apiJobs, setApiJobs] = useState<Job[]>([]);
   const [totalJobs, setTotalJobs] = useState<number>(0);
+  const [totalSources, setTotalSources] = useState<number>(0);
+  const [totalCountries, setTotalCountries] = useState<number>(0);
   const [apiCategories, setApiCategories] = useState<CategoryCount[]>([]);
 
   // Newsletter State & Handler
@@ -181,6 +261,30 @@ export default function Home() {
         
         const cats = await fetchCategories();
         setApiCategories(cats || []);
+
+        // Load stats from Supabase
+        const { data: statsData, error: statsError } = await supabase
+          .from("jobs")
+          .select("source, location")
+          .eq("is_active", true)
+          .gt("expires_at", new Date().toISOString());
+
+        if (!statsError && statsData) {
+          const uniqueSources = new Set(statsData.map(j => j.source).filter(Boolean));
+          setTotalSources(uniqueSources.size);
+
+          const uniqueCountries = new Set(statsData.map(j => {
+            if (!j.location) return null;
+            const loc = j.location.trim();
+            if (loc.toLowerCase().includes("world") || loc.toLowerCase().includes("anywhere")) {
+              return "Worldwide";
+            }
+            const parts = loc.split(",");
+            const lastPart = parts[parts.length - 1].trim();
+            return lastPart || loc;
+          }).filter(Boolean));
+          setTotalCountries(uniqueCountries.size);
+        }
       } catch (err) {
         console.error("Failed to load data from API, using mock fallback", err);
       }
@@ -228,35 +332,9 @@ export default function Home() {
           delay: 1,
         });
 
-        // ── Stats counter animation ──
-        if (statsRef.current) {
-          const statNumbers = statsRef.current.querySelectorAll(".stat-number");
-          statNumbers.forEach((el) => {
-            const target = parseInt(el.getAttribute("data-value") || "0", 10);
-            ScrollTrigger.create({
-              trigger: el,
-              start: "top 90%",
-              toggleActions: "play none none none",
-              onEnter: () => {
-                gsap.fromTo(
-                  el,
-                  { textContent: "0" },
-                  {
-                    textContent: target,
-                    duration: 2,
-                    ease: "power2.out",
-                    snap: { textContent: 1 },
-                    onUpdate: function () {
-                      const val = Math.round(parseFloat(gsap.getProperty(el, "textContent") as string));
-                      el.textContent = val.toLocaleString() + (el.getAttribute("data-suffix") || "");
-                    },
-                  }
-                );
-              },
-              once: true,
-            });
-          });
+        // ── Stats counter animation handled by AnimatedStat component ──
 
+        if (statsRef.current) {
           // Stats container reveal
           gsap.fromTo(
             statsRef.current,
@@ -425,25 +503,25 @@ export default function Home() {
         <div className="hero-glow" />
         <div className="hero-glow-secondary" />
 
-        <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-6 pt-32 pb-20 text-center max-w-5xl mx-auto">
+        <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-6 pt-16 pb-6 md:pt-20 md:pb-10 text-center max-w-5xl mx-auto">
           {/* Badge */}
-          <div className="hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[rgba(139,92,246,0.2)] bg-[rgba(139,92,246,0.06)] mb-8">
+          <div className="hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[rgba(139,92,246,0.2)] bg-[rgba(139,92,246,0.06)] mb-6">
             <span className="w-2 h-2 rounded-full bg-[#34d399] animate-pulse" />
             <span className="text-sm font-medium text-[#a78bfa]">
-              Live — 4,200+ remote jobs updated every 24h
+              Live — Remote, Hybrid & On-Site jobs updated every 24h
             </span>
           </div>
 
           {/* Title */}
           <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-extrabold tracking-tight leading-[1.05] mb-6">
             <span className="hero-title-line block">Find your next</span>
-            <span className="hero-title-line block gradient-text">remote career,</span>
+            <span className="hero-title-line block gradient-text">dream career,</span>
             <span className="hero-title-line block">anywhere.</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="hero-subtitle text-lg md:text-xl text-[#94a3b8] max-w-2xl mb-10 leading-relaxed">
-            AI-curated remote jobs from 200+ sources worldwide.
+          <p className="hero-subtitle text-lg md:text-xl text-[#94a3b8] max-w-2xl mb-8 leading-relaxed">
+            AI-curated remote, hybrid & on-site jobs from 200+ sources worldwide.
             Fresh listings every 24 hours — apply before they expire.
           </p>
 
@@ -466,7 +544,10 @@ export default function Home() {
 
           {/* Tags */}
           <div className="hero-tags flex flex-wrap justify-center gap-2">
-            {["All", "Engineering", "Design", "Marketing", "Data Science", "DevOps"].map((t) => (
+            {(apiCategories.length > 0
+              ? ["All", ...apiCategories.slice(0, 5).map(c => c.name)]
+              : ["All", "Fullstack Development", "Design & Creative", "Marketing & Sales", "Cloud & DevOps", "AI & Machine Learning"]
+            ).map((t) => (
               <button
                 key={t}
                 onClick={() => {
@@ -503,23 +584,23 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════
           STATS
           ═══════════════════════════════════════════════ */}
-      <section className="py-20 px-6" ref={statsRef}>
+      <section className="py-6 md:py-10 px-6" ref={statsRef}>
         <div className="max-w-5xl mx-auto">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number" data-value={totalJobs > 0 ? totalJobs : 4200} data-suffix="+">0</div>
+              <AnimatedStat value={totalJobs > 0 ? totalJobs : 4200} suffix="+" />
               <div className="stat-label">Active Jobs</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number" data-value="200" data-suffix="+">0</div>
+              <AnimatedStat value={totalSources > 0 ? totalSources : 5} suffix="+" />
               <div className="stat-label">Sources Crawled</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number" data-value="48">0</div>
+              <AnimatedStat value={totalCountries > 0 ? totalCountries : 12} />
               <div className="stat-label">Countries</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number" data-value="24" data-suffix="h">0</div>
+              <AnimatedStat value={24} suffix="h" />
               <div className="stat-label">Refresh Cycle</div>
             </div>
           </div>
@@ -529,20 +610,26 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════
           CATEGORIES
           ═══════════════════════════════════════════════ */}
-      <section className="py-16 px-6" ref={categoriesRef} id="categories">
+      <section className="pt-6 md:pt-10 pb-4 md:pb-6 px-6" ref={categoriesRef} id="categories">
         <div className="max-w-5xl mx-auto">
-          <div className="mb-12">
+          <div className="mb-8">
             <h2 className="section-heading mb-3">
               Browse by <span className="gradient-text">category</span>
             </h2>
             <p className="section-subheading">
-              Explore thousands of remote opportunities across every field.
+              Explore thousands of remote, hybrid & on-site opportunities across every field.
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {CATEGORIES.map((cat) => {
-              const apiCat = apiCategories.find(c => c.name === cat.name);
-              const count = apiCat ? apiCat.count : cat.count;
+            {(apiCategories.length > 0
+              ? apiCategories.map(cat => ({
+                  name: cat.name,
+                  icon: CATEGORY_DETAILS[cat.name]?.icon || "💼",
+                  count: cat.count,
+                  color: CATEGORY_DETAILS[cat.name]?.color || "#94a3b8"
+                }))
+              : CATEGORIES
+            ).map((cat) => {
               return (
                 <div
                   key={cat.name}
@@ -559,7 +646,7 @@ export default function Home() {
                     {cat.icon}
                   </div>
                   <div className="text-sm font-semibold mb-1">{cat.name}</div>
-                  <div className="text-xs text-[#64748b]">{count.toLocaleString()} jobs</div>
+                  <div className="text-xs text-[#64748b]">{cat.count.toLocaleString()} jobs</div>
                 </div>
               );
             })}
@@ -570,7 +657,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════
           AD SLOT — TOP
           ═══════════════════════════════════════════════ */}
-      <section className="px-6 pb-8">
+      <section className="px-6 py-2">
         <div className="max-w-5xl mx-auto">
           <AdUnit slot="5819071234" format="horizontal" />
         </div>
@@ -579,15 +666,15 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════
           JOB LISTINGS
           ═══════════════════════════════════════════════ */}
-      <section className="py-16 px-6" ref={jobsRef} id="jobs">
+      <section className="pt-4 md:pt-6 pb-6 md:pb-8 px-6" ref={jobsRef} id="jobs">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-10 gap-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8 gap-4">
             <div>
               <h2 className="section-heading mb-3">
-                Latest <span className="gradient-text">remote jobs</span>
+                Latest <span className="gradient-text">job listings</span>
               </h2>
               <p className="section-subheading">
-                Jobs auto-expire after 24 hours. Apply before time runs out.
+                Remote, hybrid & on-site jobs — auto-expire after 24 hours. Apply before time runs out.
               </p>
             </div>
             <div className="flex items-center gap-2 text-sm text-[#64748b]">
@@ -601,7 +688,7 @@ export default function Home() {
               (j) => activeFilter === "All" || j.category === activeFilter
             )).map((job: any) => {
               const hoursLeft = job.expires_at ? getHoursLeft(job.expires_at) : job.hoursLeft;
-              const color = job.color || CATEGORIES.find(c => c.name === job.category)?.color || "#8b5cf6";
+              const color = job.color || CATEGORY_DETAILS[job.category]?.color || "#8b5cf6";
               const title = job.title;
               const company = job.company;
               const company_logo = job.company_logo || company[0];
@@ -642,6 +729,14 @@ export default function Home() {
                       <span className="inline-flex items-center gap-1">
                         {remote_type === "worldwide" ? "🌍" : "📍"} {location}
                       </span>
+                      {(() => {
+                        const wpBadge = WORKPLACE_BADGES[job.workplace_type] || WORKPLACE_BADGES.remote;
+                        return (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${wpBadge.color}15`, color: wpBadge.color, border: `1px solid ${wpBadge.color}30` }}>
+                            {wpBadge.icon} {wpBadge.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {/* Tags */}
                     <div className="flex gap-1.5 mt-2 flex-wrap">
@@ -670,7 +765,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-center gap-3">
                     <ExpireBadge hoursLeft={hoursLeft} />
-                    <a href={`/jobs/${id}`}
+                    <a href={`/jobs/${id}-${slugify(title + " " + company)}`}
                       className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 inline-block text-center whitespace-nowrap"
                       style={{
                         background: `${color}15`,
@@ -703,7 +798,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════
           AD SLOT — MID
           ═══════════════════════════════════════════════ */}
-      <section className="px-6 pb-8">
+      <section className="px-6 py-2">
         <div className="max-w-5xl mx-auto">
           <AdUnit slot="7149071234" format="fluid" />
         </div>
@@ -712,8 +807,8 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════
           CTA BANNER
           ═══════════════════════════════════════════════ */}
-      <section className="py-20 px-6" ref={ctaRef}>
-        <div className="max-w-4xl mx-auto text-center glass-card py-16 px-8 relative overflow-hidden">
+      <section className="pt-4 md:pt-6 pb-6 md:pb-10 px-6" ref={ctaRef}>
+        <div className="max-w-4xl mx-auto text-center glass-card py-10 px-6 md:py-12 md:px-8 relative overflow-hidden">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
@@ -784,15 +879,15 @@ export default function Home() {
           FOOTER
           ═══════════════════════════════════════════════ */}
       <footer className="footer">
-        <div className="max-w-5xl mx-auto px-6 py-16">
+        <div className="max-w-5xl mx-auto px-6 py-6 md:py-10">
           <div className="footer-grid">
             <div>
               <a href="/" className="nav-logo text-xl block mb-4">
                 Future<span className="gradient-text">Talent</span>
               </a>
               <p className="text-[#64748b] text-sm leading-relaxed max-w-xs">
-                AI-curated remote jobs from 200+ sources. Fresh listings every
-                24 hours — the fastest way to find your next remote career.
+                AI-curated remote, hybrid & on-site jobs from 200+ sources. Fresh listings every
+                24 hours — the fastest way to find your next career.
               </p>
             </div>
             <div>
@@ -819,7 +914,7 @@ export default function Home() {
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
             <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></span>
-            <span>Powered by AI • Built with ♥ for remote workers</span>
+            <span>Powered by AI • Built with ♥ for job seekers everywhere</span>
           </div>
         </div>
       </footer>

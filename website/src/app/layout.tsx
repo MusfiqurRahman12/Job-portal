@@ -26,18 +26,21 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FutureTalent — Find Remote Jobs Worldwide | Work From Anywhere",
+  title: "FutureTalent — Find Remote, Hybrid & On-Site Jobs Worldwide",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
   },
   description:
-    "Discover the best remote jobs from around the world. Curated daily by AI. Engineering, Design, Marketing, and more — updated every 24 hours.",
-  keywords: ["remote jobs", "work from home", "worldwide jobs", "remote engineering", "remote design", "futuretalent", "futuretalent.online"],
+    "Discover the best remote, hybrid, and on-site jobs from around the world. Curated daily by AI. Engineering, Design, Marketing, and more — updated every 24 hours.",
+  keywords: ["remote jobs", "hybrid jobs", "on-site jobs", "work from home", "worldwide jobs", "remote engineering", "remote design", "futuretalent", "futuretalent.online"],
   openGraph: {
-    title: "FutureTalent — Find Remote Jobs Worldwide",
-    description: "Discover the best remote jobs from around the world, curated daily by AI.",
+    title: "FutureTalent — Find Remote, Hybrid & On-Site Jobs Worldwide",
+    description: "Discover the best remote, hybrid, and on-site jobs from around the world, curated daily by AI.",
     type: "website",
+  },
+  verification: {
+    google: "2vEd6NYdXeVZTXlbsJtssfTBMEJzDlAePixBngSHC-o",
   },
 };
 

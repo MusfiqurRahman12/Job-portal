@@ -93,6 +93,9 @@ func (r *RemoteOKScraper) Crawl() ([]shared.Job, error) {
 
 		category := CategorizeJob(rj.Position, rj.Tags, "")
 
+		// Detect workplace type from title/location/description
+		workplaceType := shared.DetectWorkplaceType(rj.Position, location, rj.Description)
+
 		jobURL := rj.URL
 		if jobURL == "" {
 			jobURL = fmt.Sprintf("https://remoteok.com/remote-jobs/%s", rj.Slug)
@@ -106,18 +109,19 @@ func (r *RemoteOKScraper) Crawl() ([]shared.Job, error) {
 		}
 
 		job := shared.Job{
-			Title:       rj.Position,
-			Company:     rj.Company,
-			CompanyLogo: rj.CompanyLogo,
-			Location:    location,
-			Description: rj.Description,
-			Source:      r.Name(),
-			URL:         jobURL,
-			RemoteType:  remoteType,
-			Category:    category,
-			Tags:        rj.Tags,
-			Salary:      salary,
-			PostedAt:    postedAt,
+			Title:         rj.Position,
+			Company:       rj.Company,
+			CompanyLogo:   rj.CompanyLogo,
+			Location:      location,
+			Description:   rj.Description,
+			Source:        r.Name(),
+			URL:           jobURL,
+			RemoteType:    remoteType,
+			WorkplaceType: workplaceType,
+			Category:      category,
+			Tags:          rj.Tags,
+			Salary:        salary,
+			PostedAt:      postedAt,
 		}
 		job.SetExpiration()
 		jobs = append(jobs, job)

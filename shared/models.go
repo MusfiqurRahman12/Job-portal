@@ -7,22 +7,37 @@ import (
 
 // Job represents a single job listing scraped from external sources
 type Job struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Company     string    `json:"company"`
-	CompanyLogo string    `json:"company_logo"`
-	Location    string    `json:"location"`
-	Description string    `json:"description"`
-	Source      string    `json:"source"`
-	URL         string    `json:"url"`
-	RemoteType  string    `json:"remote_type"` // "worldwide", "country", "hybrid"
-	Category    string    `json:"category"`
-	Tags        []string  `json:"tags"`
-	Salary      string    `json:"salary"`
-	PostedAt    time.Time `json:"posted_at"`
-	ExpiresAt   time.Time `json:"expires_at"`  // Auto-expires 24h after posted_at
-	CreatedAt   time.Time `json:"created_at"`
-	IsActive    bool      `json:"is_active"`
+	ID            string    `json:"id"`
+	Title         string    `json:"title"`
+	Company       string    `json:"company"`
+	CompanyLogo   string    `json:"company_logo"`
+	Location      string    `json:"location"`
+	Description   string    `json:"description"`
+	Source        string    `json:"source"`
+	URL           string    `json:"url"`
+	RemoteType    string    `json:"remote_type"`    // "worldwide", "country"
+	WorkplaceType string    `json:"workplace_type"` // "remote", "hybrid", "onsite"
+	Category      string    `json:"category"`
+	Tags          []string  `json:"tags"`
+	Salary        string    `json:"salary"`
+	PostedAt      time.Time `json:"posted_at"`
+	ExpiresAt     time.Time `json:"expires_at"`     // Auto-expires 24h after posted_at
+	CreatedAt     time.Time `json:"created_at"`
+	IsActive      bool      `json:"is_active"`
+}
+
+// DetectWorkplaceType returns "remote", "hybrid", or "onsite" based on text analysis
+func DetectWorkplaceType(title, location, description string) string {
+	combined := strings.ToLower(title + " " + location + " " + description)
+	if strings.Contains(combined, "hybrid") {
+		return "hybrid"
+	}
+	if strings.Contains(combined, "on-site") || strings.Contains(combined, "onsite") ||
+		strings.Contains(combined, "in-office") || strings.Contains(combined, "in office") ||
+		strings.Contains(combined, "on site") {
+		return "onsite"
+	}
+	return "remote"
 }
 
 // SetExpiration sets the expiration to 24 hours from now (scrape time).

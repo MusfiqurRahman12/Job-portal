@@ -91,11 +91,6 @@ func (a *ArbeitnowScraper) Crawl() ([]shared.Job, error) {
 		}
 
 		for _, aj := range apiResp.Data {
-			// Only include remote jobs
-			if !aj.Remote {
-				continue
-			}
-
 			if aj.Title == "" || aj.URL == "" {
 				continue
 			}
@@ -105,12 +100,27 @@ func (a *ArbeitnowScraper) Crawl() ([]shared.Job, error) {
 				location = "Remote Worldwide"
 			}
 
+			// Determine workplace type based on Remote flag and text heuristics
+			workplaceType := "onsite"
+			if aj.Remote {
+				workplaceType = shared.DetectWorkplaceType(aj.Title, location, aj.Description)
+				if workplaceType == "onsite" {
+					workplaceType = "remote" // Remote flag overrides onsite detection
+				}
+			} else {
+				workplaceType = shared.DetectWorkplaceType(aj.Title, location, aj.Description)
+			}
+
 			remoteType := "worldwide"
-			locLower := strings.ToLower(location)
-			if strings.Contains(locLower, "germany") || strings.Contains(locLower, "usa") ||
-				strings.Contains(locLower, "europe") || strings.Contains(locLower, "uk") ||
-				strings.Contains(locLower, "us") {
+			if workplaceType == "onsite" {
 				remoteType = "country"
+			} else {
+				locLower := strings.ToLower(location)
+				if strings.Contains(locLower, "germany") || strings.Contains(locLower, "usa") ||
+					strings.Contains(locLower, "europe") || strings.Contains(locLower, "uk") ||
+					strings.Contains(locLower, "us") {
+					remoteType = "country"
+				}
 			}
 
 			category := CategorizeJob(aj.Title, aj.Tags, "")
@@ -128,16 +138,17 @@ func (a *ArbeitnowScraper) Crawl() ([]shared.Job, error) {
 			desc = strings.ReplaceAll(desc, "</li>", "\n")
 
 			job := shared.Job{
-				Title:       aj.Title,
-				Company:     aj.CompanyName,
-				Location:    location,
-				Description: desc,
-				Source:      a.Name(),
-				URL:         aj.URL,
-				RemoteType:  remoteType,
-				Category:    category,
-				Tags:        aj.Tags,
-				PostedAt:    postedAt,
+				Title:         aj.Title,
+				Company:       aj.CompanyName,
+				Location:      location,
+				Description:   desc,
+				Source:        a.Name(),
+				URL:           aj.URL,
+				RemoteType:    remoteType,
+				WorkplaceType: workplaceType,
+				Category:      category,
+				Tags:          aj.Tags,
+				PostedAt:      postedAt,
 			}
 			job.SetExpiration()
 			allJobs = append(allJobs, job)

@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { fetchJobs, fetchNews } from "@/lib/api";
+import { fetchJobs, fetchNews, slugify } from "@/lib/api";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Use public URL if available, fallback to default production URL
@@ -7,11 +7,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let jobUrls: MetadataRoute.Sitemap = [];
   try {
-    // Fetch up to 100 active non-expired jobs
-    const jobsRes = await fetchJobs({ limit: 100 });
+    // Fetch up to 1000 active non-expired jobs
+    const jobsRes = await fetchJobs({ limit: 1000 });
     const jobs = jobsRes.jobs || [];
     jobUrls = jobs.map((job) => ({
-      url: `${baseUrl}/jobs/${job.id}`,
+      url: `${baseUrl}/jobs/${job.id}-${slugify(job.title + " " + job.company)}`,
       lastModified: new Date(job.created_at || job.posted_at),
       changeFrequency: "daily",
       priority: 0.8,

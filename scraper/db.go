@@ -37,12 +37,13 @@ func (db *DB) SaveJob(job shared.Job) (int64, error) {
 	}
 
 	query := `
-		INSERT INTO jobs (title, company, company_logo, location, description, source, url, remote_type, category, tags, salary, posted_at, expires_at, is_active)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		INSERT INTO jobs (title, company, company_logo, location, description, source, url, remote_type, workplace_type, category, tags, salary, posted_at, expires_at, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		ON CONFLICT (url) DO UPDATE SET
 			title = EXCLUDED.title,
 			description = EXCLUDED.description,
 			salary = EXCLUDED.salary,
+			workplace_type = EXCLUDED.workplace_type,
 			posted_at = EXCLUDED.posted_at,
 			expires_at = EXCLUDED.expires_at,
 			is_active = TRUE
@@ -58,6 +59,7 @@ func (db *DB) SaveJob(job shared.Job) (int64, error) {
 		job.Source,
 		job.URL,
 		job.RemoteType,
+		job.WorkplaceType,
 		job.Category,
 		pq.Array(job.Tags),
 		job.Salary,
@@ -72,13 +74,19 @@ func (db *DB) SaveJob(job shared.Job) (int64, error) {
 	return insertedID, nil
 }
 
-// CleanExpiredJobs marks jobs as inactive when they pass the 24-hour window and returns deactivated job IDs
-func (db *DB) CleanExpiredJobs() ([]int64, error) {
+type ExpiredJobInfo struct {
+	ID      int64
+	Title   string
+	Company string
+}
+
+// CleanExpiredJobs marks jobs as inactive 24 hours after they pass the application window (expires_at) and returns deactivated job details
+func (db *DB) CleanExpiredJobs() ([]ExpiredJobInfo, error) {
 	query := `
 		UPDATE jobs 
 		SET is_active = FALSE 
-		WHERE is_active = TRUE AND expires_at < $1
-		RETURNING id
+		WHERE is_active = TRUE AND expires_at < $1 - INTERVAL '24 hours'
+		RETURNING id, title, company
 	`
 	rows, err := db.conn.Query(query, time.Now())
 	if err != nil {
@@ -86,24 +94,25 @@ func (db *DB) CleanExpiredJobs() ([]int64, error) {
 	}
 	defer rows.Close()
 
-	var ids []int64
+	var jobs []ExpiredJobInfo
 	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
+		var j ExpiredJobInfo
+		if err := rows.Scan(&j.ID, &j.Title, &j.Company); err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		jobs = append(jobs, j)
 	}
-	return ids, nil
+	return jobs, nil
 }
 
-// DeleteExpiredJobs permanently removes jobs that expired more than 7 days ago
+// DeleteExpiredJobs permanently removes jobs that have been archived for more than 7 days
+// (which corresponds to 8 days total after their application window expires_at passes)
 func (db *DB) DeleteExpiredJobs() (int64, error) {
 	query := `
 		DELETE FROM jobs 
-		WHERE is_active = FALSE AND expires_at < $1
+		WHERE is_active = FALSE AND expires_at < $1 - INTERVAL '8 days'
 	`
-	result, err := db.conn.Exec(query, time.Now().Add(-7*24*time.Hour))
+	result, err := db.conn.Exec(query, time.Now())
 	if err != nil {
 		return 0, err
 	}
@@ -119,7 +128,7 @@ func (db *DB) GetActiveJobs(limit, offset int) ([]shared.Job, error) {
 func (db *DB) GetFilteredJobs(limit, offset int, category, remoteType, search string) ([]shared.Job, error) {
 	query := `
 		SELECT id, title, company, company_logo, location, description, source, url, 
-		       remote_type, category, tags, salary, posted_at, expires_at, created_at, is_active
+		       remote_type, workplace_type, category, tags, salary, posted_at, expires_at, created_at, is_active
 		FROM jobs 
 		WHERE is_active = TRUE AND expires_at > $1
 	`
@@ -158,7 +167,7 @@ func (db *DB) GetFilteredJobs(limit, offset int, category, remoteType, search st
 		var j shared.Job
 		err := rows.Scan(
 			&j.ID, &j.Title, &j.Company, &j.CompanyLogo, &j.Location, &j.Description,
-			&j.Source, &j.URL, &j.RemoteType, &j.Category, pq.Array(&j.Tags),
+			&j.Source, &j.URL, &j.RemoteType, &j.WorkplaceType, &j.Category, pq.Array(&j.Tags),
 			&j.Salary, &j.PostedAt, &j.ExpiresAt, &j.CreatedAt, &j.IsActive,
 		)
 		if err != nil {
@@ -182,14 +191,14 @@ func (db *DB) GetJobCount() (int, error) {
 func (db *DB) GetJobByID(id string) (shared.Job, error) {
 	query := `
 		SELECT id, title, company, company_logo, location, description, source, url, 
-		       remote_type, category, tags, salary, posted_at, expires_at, created_at, is_active
+		       remote_type, workplace_type, category, tags, salary, posted_at, expires_at, created_at, is_active
 		FROM jobs 
 		WHERE id = $1
 	`
 	var j shared.Job
 	err := db.conn.QueryRow(query, id).Scan(
 		&j.ID, &j.Title, &j.Company, &j.CompanyLogo, &j.Location, &j.Description,
-		&j.Source, &j.URL, &j.RemoteType, &j.Category, pq.Array(&j.Tags),
+		&j.Source, &j.URL, &j.RemoteType, &j.WorkplaceType, &j.Category, pq.Array(&j.Tags),
 		&j.Salary, &j.PostedAt, &j.ExpiresAt, &j.CreatedAt, &j.IsActive,
 	)
 	return j, err
@@ -247,18 +256,19 @@ func (db *DB) StartCleanupScheduler(stop chan struct{}) {
 }
 
 func (db *DB) runCleanup() {
-	deactivatedIDs, err := db.CleanExpiredJobs()
+	expiredJobs, err := db.CleanExpiredJobs()
 	if err != nil {
 		log.Printf("Error cleaning expired jobs: %v", err)
-	} else if len(deactivatedIDs) > 0 {
-		log.Printf("Deactivated %d expired jobs", len(deactivatedIDs))
-		for _, id := range deactivatedIDs {
-			go func(jobID int64) {
-				jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d", jobID)
+	} else if len(expiredJobs) > 0 {
+		log.Printf("Deactivated %d expired jobs", len(expiredJobs))
+		for _, j := range expiredJobs {
+			go func(jobID int64, title string, company string) {
+				slug := Slugify(fmt.Sprintf("%s %s", title, company))
+				jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d-%s", jobID, slug)
 				if err := NotifyGoogleIndexing(jobURL, "URL_DELETED"); err != nil {
 					log.Printf("[Indexing] ⚠️ Google Indexing API deletion failed for %s: %v", jobURL, err)
 				}
-			}(id)
+			}(j.ID, j.Title, j.Company)
 		}
 	}
 

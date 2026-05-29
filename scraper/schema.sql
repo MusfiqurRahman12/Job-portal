@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     source TEXT,
     url TEXT UNIQUE NOT NULL,
     remote_type TEXT DEFAULT 'worldwide',
+    workplace_type TEXT DEFAULT 'remote',
     category TEXT DEFAULT 'general',
     tags TEXT[] DEFAULT '{}',
     salary TEXT DEFAULT '',
@@ -18,10 +19,17 @@ CREATE TABLE IF NOT EXISTS jobs (
     is_active BOOLEAN DEFAULT TRUE
 );
 
+-- Add workplace_type column if it doesn't exist (safe migration)
+DO $$ BEGIN
+    ALTER TABLE jobs ADD COLUMN IF NOT EXISTS workplace_type TEXT DEFAULT 'remote';
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_jobs_url ON jobs(url);
 CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs(category);
 CREATE INDEX IF NOT EXISTS idx_jobs_remote_type ON jobs(remote_type);
+CREATE INDEX IF NOT EXISTS idx_jobs_workplace_type ON jobs(workplace_type);
 CREATE INDEX IF NOT EXISTS idx_jobs_expires_at ON jobs(expires_at);
 CREATE INDEX IF NOT EXISTS idx_jobs_is_active ON jobs(is_active);
 CREATE INDEX IF NOT EXISTS idx_jobs_posted_at ON jobs(posted_at DESC);

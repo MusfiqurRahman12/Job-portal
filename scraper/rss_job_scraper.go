@@ -102,6 +102,9 @@ func (s *RSSJobScraper) Crawl() ([]shared.Job, error) {
 		location := "Remote Worldwide"
 		remoteType := "worldwide"
 
+		// Detect workplace type
+		workplaceType := shared.DetectWorkplaceType(title, location, item.Description)
+
 		// Categorize
 		category := CategorizeJob(title, nil, item.Category)
 
@@ -133,15 +136,16 @@ func (s *RSSJobScraper) Crawl() ([]shared.Job, error) {
 		desc = strings.ReplaceAll(desc, "</li>", "\n")
 
 		job := shared.Job{
-			Title:       title,
-			Company:     company,
-			Location:    location,
-			Description: desc,
-			Source:      s.Name(),
-			URL:         item.Link,
-			RemoteType:  remoteType,
-			Category:    category,
-			PostedAt:    postedAt,
+			Title:         title,
+			Company:       company,
+			Location:      location,
+			Description:   desc,
+			Source:        s.Name(),
+			URL:           item.Link,
+			RemoteType:    remoteType,
+			WorkplaceType: workplaceType,
+			Category:      category,
+			PostedAt:      postedAt,
 		}
 		job.SetExpiration()
 		jobs = append(jobs, job)

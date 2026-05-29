@@ -93,23 +93,59 @@ func (e *Engine) Run() {
 	// This prevents slow news AI calls from blocking job saves
 	var processingWg sync.WaitGroup
 
-	// Goroutine 1: Process all job listings
-	// Pipeline: Scrape → Deduplicate → Gemini Rewrite → Save
-	// RULE: No Gemini, No Post — raw scraped content is NEVER saved
+	// Goroutine 1: Process all job listings in BATCHES
 	processingWg.Add(1)
 	go func() {
 		defer processingWg.Done()
+		var batch []*shared.Job
 		for job := range jobChan {
-			e.processJob(job)
+			// 1. Deduplicate — check if URL already exists in DB
+			if job.URL != "" {
+				exists, err := e.db.JobURLExists(job.URL)
+				if err == nil && exists {
+					log.Printf("[Dedup] Skipping duplicate: %s (%s)", job.Title, job.URL)
+					continue
+				}
+			}
+
+			// Capture loop variable correctly
+			j := job
+			batch = append(batch, &j)
+
+			if len(batch) >= 10 {
+				e.processJobBatch(batch)
+				batch = nil
+			}
+		}
+		// Process remaining
+		if len(batch) > 0 {
+			e.processJobBatch(batch)
 		}
 	}()
 
-	// Goroutine 2: Process all news articles (with AI if quota available, skip if already in DB)
+	// Goroutine 2: Process all news articles in BATCHES
 	processingWg.Add(1)
 	go func() {
 		defer processingWg.Done()
+		var batch []*shared.News
 		for art := range newsChan {
-			e.processNews(art)
+			// Deduplicate
+			art.GenerateSlug()
+			if existing, _ := e.db.GetNewsBySlug(art.Slug); existing.ID > 0 {
+				log.Printf("[News] Skipping already-indexed article: %s", art.Title)
+				continue
+			}
+
+			a := art
+			batch = append(batch, &a)
+
+			if len(batch) >= 5 {
+				e.processNewsBatch(batch)
+				batch = nil
+			}
+		}
+		if len(batch) > 0 {
+			e.processNewsBatch(batch)
 		}
 	}()
 
@@ -117,73 +153,60 @@ func (e *Engine) Run() {
 	processingWg.Wait()
 }
 
-func (e *Engine) processJob(job shared.Job) {
-	// 1. Deduplicate — check if URL already exists in DB (skip before AI to save quota)
-	if job.URL != "" {
-		exists, err := e.db.JobURLExists(job.URL)
-		if err != nil {
-			log.Printf("[Dedup] Error checking URL for %s: %v", job.Title, err)
-			// On error, proceed cautiously — try to save anyway
-		} else if exists {
-			log.Printf("[Dedup] Skipping duplicate: %s (%s)", job.Title, job.URL)
-			return
-		}
-	}
-
+func (e *Engine) processJobBatch(jobs []*shared.Job) {
 	// 2. Gemini AI Rewrite — MANDATORY for all new jobs
-	// "No Gemini, No Post" rule: if AI fails, we skip the job entirely
+	// "No Gemini, No Post" rule: if AI fails, we skip the batch entirely
 	if e.aiService != nil {
-		err := e.aiService.OptimizeJob(&job)
+		err := e.aiService.OptimizeJobsBatch(jobs)
 		if err != nil {
-			log.Printf("[AI] ❌ Gemini rewrite failed for [%s] at %s — SKIPPING (No Gemini, No Post): %v", job.Title, job.Company, err)
+			log.Printf("[AI] ❌ Gemini batch rewrite failed — SKIPPING %d jobs (No Gemini, No Post): %v", len(jobs), err)
 			return // Do NOT save raw scraped content
 		}
 	} else {
-		log.Printf("[AI] ⚠️ No AI service configured — skipping job: %s (No Gemini, No Post rule)", job.Title)
+		log.Printf("[AI] ⚠️ No AI service configured — skipping %d jobs (No Gemini, No Post rule)", len(jobs))
 		return // Do NOT save without AI rewrite
 	}
 
-	// 3. Save Gemini-rewritten job to Database
-	jobID, err := e.db.SaveJob(job)
-	if err != nil {
-		log.Printf("Error saving job from %s: %v", job.Source, err)
-		return
-	}
-
-	log.Printf("✅ Saved job: [%s] at %s from %s", job.Title, job.Company, job.Source)
-
-	// 4. Notify Google Indexing API of the new/updated job URL
-	go func(id int64) {
-		jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d", id)
-		if err := NotifyGoogleIndexing(jobURL, "URL_UPDATED"); err != nil {
-			log.Printf("[Indexing] ⚠️ Google Indexing API update failed for %s: %v", jobURL, err)
+	// 3. Save Gemini-rewritten jobs to Database
+	for _, j := range jobs {
+		jobID, err := e.db.SaveJob(*j)
+		if err != nil {
+			log.Printf("Error saving job from %s: %v", j.Source, err)
+			continue
 		}
-	}(jobID)
+
+		log.Printf("✅ Saved job: [%s] at %s from %s", j.Title, j.Company, j.Source)
+
+		// 4. Notify Google Indexing API of the new/updated job URL
+		go func(id int64, title string, company string) {
+			slug := Slugify(fmt.Sprintf("%s %s", title, company))
+			jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d-%s", id, slug)
+			if err := NotifyGoogleIndexing(jobURL, "URL_UPDATED"); err != nil {
+				log.Printf("[Indexing] ⚠️ Google Indexing API update failed for %s: %v", jobURL, err)
+			}
+		}(jobID, j.Title, j.Company)
+	}
 }
 
-func (e *Engine) processNews(art shared.News) {
-	// Skip AI optimization if article already exists in DB (avoids burning quota on duplicates)
-	art.GenerateSlug()
-	if existing, _ := e.db.GetNewsBySlug(art.Slug); existing.ID > 0 {
-		log.Printf("[News] Skipping already-indexed article: %s", art.Title)
-		return
-	}
-
-	// 1. AI Content Optimization (re-writing, category mapping, excerpts)
+func (e *Engine) processNewsBatch(articles []*shared.News) {
+	// 1. AI Content Optimization
 	if e.aiService != nil {
-		err := e.aiService.OptimizeNews(&art)
+		err := e.aiService.OptimizeNewsBatch(articles)
 		if err != nil {
-			log.Printf("AI Optimization failed for news article %s: %v", art.Title, err)
-			return // Don't save unoptimized news — it needs AI rewriting for quality
+			log.Printf("[AI] ❌ AI Optimization failed for batch of %d news articles: %v", len(articles), err)
+			return // Don't save unoptimized news
 		}
+	} else {
+		return
 	}
 
 	// 2. Save to Database
-	err := e.db.SaveNews(art)
-	if err != nil {
-		log.Printf("Error saving news article %s: %v", art.Title, err)
-		return
+	for _, art := range articles {
+		err := e.db.SaveNews(*art)
+		if err != nil {
+			log.Printf("Error saving news article %s: %v", art.Title, err)
+			continue
+		}
+		log.Printf("Saved news article: [%s] Category: %s from %s", art.Title, art.Category, art.Author)
 	}
-
-	log.Printf("Saved news article: [%s] Category: %s from %s", art.Title, art.Category, art.Author)
 }

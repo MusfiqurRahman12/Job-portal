@@ -96,6 +96,9 @@ func (r *RemotiveScraper) Crawl() ([]shared.Job, error) {
 
 		category := CategorizeJob(rj.Title, rj.Tags, rj.Category)
 
+		// Detect workplace type from title/location/description
+		workplaceType := shared.DetectWorkplaceType(rj.Title, location, rj.Description)
+
 		postedAt := time.Now()
 		if rj.PublicationDate != "" {
 			// Remotive uses ISO 8601 format
@@ -113,18 +116,19 @@ func (r *RemotiveScraper) Crawl() ([]shared.Job, error) {
 		desc = strings.ReplaceAll(desc, "</li>", "\n")
 
 		job := shared.Job{
-			Title:       rj.Title,
-			Company:     rj.CompanyName,
-			CompanyLogo: rj.CompanyLogo,
-			Location:    location,
-			Description: desc,
-			Source:      r.Name(),
-			URL:         rj.URL,
-			RemoteType:  remoteType,
-			Category:    category,
-			Tags:        rj.Tags,
-			Salary:      rj.Salary,
-			PostedAt:    postedAt,
+			Title:         rj.Title,
+			Company:       rj.CompanyName,
+			CompanyLogo:   rj.CompanyLogo,
+			Location:      location,
+			Description:   desc,
+			Source:        r.Name(),
+			URL:           rj.URL,
+			RemoteType:    remoteType,
+			WorkplaceType: workplaceType,
+			Category:      category,
+			Tags:          rj.Tags,
+			Salary:        rj.Salary,
+			PostedAt:      postedAt,
 		}
 		job.SetExpiration()
 		jobs = append(jobs, job)

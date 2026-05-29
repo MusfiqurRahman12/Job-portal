@@ -1,4 +1,4 @@
-import { fetchJobById, getHoursLeft } from "@/lib/api";
+import { fetchJobById, getHoursLeft, slugify } from "@/lib/api";
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -11,18 +11,28 @@ interface Props {
 // Generate dynamic metadata for search engines and social links (open graph)
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
+  const rawId = resolvedParams.id;
+  const actualId = rawId.split("-")[0];
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://futuretalent.com";
+
   try {
-    const job = await fetchJobById(resolvedParams.id);
+    const job = await fetchJobById(actualId);
     const title = `${job.title} at ${job.company} | Remote Jobs`;
     const description = `Apply for ${job.title} at ${job.company} (${job.location}). Category: ${job.category}. Salary: ${job.salary || "Competitive"}.`;
+    const slug = slugify(job.title + " " + job.company);
+    const canonicalUrl = `${baseUrl}/jobs/${job.id}-${slug}`;
 
     return {
       title,
       description,
+      alternates: {
+        canonical: canonicalUrl,
+      },
       openGraph: {
         title,
         description,
         type: "article",
+        url: canonicalUrl,
       },
     };
   } catch (err) {
@@ -49,11 +59,12 @@ function getEmploymentType(title: string, desc: string): string {
 
 export default async function JobDetailPage({ params }: Props) {
   const resolvedParams = await params;
-  const id = resolvedParams.id;
+  const rawId = resolvedParams.id;
+  const actualId = rawId.split("-")[0];
 
   let job;
   try {
-    job = await fetchJobById(id);
+    job = await fetchJobById(actualId);
   } catch (err) {
     console.error("Job details loading failed, rendering not found page:", err);
     notFound();

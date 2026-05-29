@@ -139,13 +139,13 @@ export default function BlogPage() {
         </div>
       </nav>
 
-      <div className="min-h-screen pt-32 pb-24 px-6 relative z-10 selection:bg-[#34d399] selection:text-black">
+      <div className="min-h-screen pt-24 md:pt-32 pb-12 md:pb-20 px-4 md:px-6 relative z-10 selection:bg-[#34d399] selection:text-black">
         {/* Background ambient glow specific to blog */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#34d399]/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <header className="text-center mb-16" ref={headerRef}>
+          <header className="text-center mb-10 md:mb-14" ref={headerRef}>
             <h1 className="blog-title text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 tracking-tight mb-6" style={{ perspective: "1000px" }}>
               The Remote <span className="text-[#34d399]">Pulse</span>
             </h1>
@@ -176,7 +176,7 @@ export default function BlogPage() {
             {/* Featured Post */}
             <div 
               ref={featuredRef}
-              className="relative w-full h-[500px] rounded-[2rem] overflow-hidden mb-16 group cursor-pointer border border-white/10 shadow-2xl shadow-[#34d399]/5"
+              className="relative w-full h-[300px] sm:h-[450px] md:h-[500px] rounded-[2rem] overflow-hidden mb-8 md:mb-12 group cursor-pointer border border-white/10 shadow-2xl shadow-[#34d399]/5"
             >
               <div className="absolute inset-0 overflow-hidden">
                 <img 
@@ -215,7 +215,7 @@ export default function BlogPage() {
             </div>
 
             {/* Ad Slot */}
-            <AdUnit slot="2199071234" format="horizontal" style={{ minHeight: "100px", marginBottom: "4rem" }} />
+            <AdUnit slot="2199071234" format="horizontal" style={{ minHeight: "100px", marginBottom: "2rem" }} />
 
             {/* Recent Posts Grid */}
             {blogPosts.length > 0 && (

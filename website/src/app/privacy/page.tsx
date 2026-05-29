@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 pt-32 pb-20 px-6">
+      <main className="flex-1 pt-20 md:pt-28 pb-10 md:pb-16 px-4 md:px-6">
         <div className="max-w-4xl mx-auto">
           <div className="glass-card p-8 md:p-12 mb-8">
             <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">
@@ -136,7 +136,7 @@ export default function PrivacyPolicyPage() {
 
       {/* Footer */}
       <footer className="footer mt-auto">
-        <div className="max-w-5xl mx-auto px-6 py-16">
+        <div className="max-w-5xl mx-auto px-6 py-10 md:py-14">
           <div className="border-t border-[rgba(255,255,255,0.06)] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
             <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></span>
             <span>Powered by AI • Built with ♥ for remote workers</span>

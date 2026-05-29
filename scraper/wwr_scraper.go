@@ -106,6 +106,9 @@ func (w *WWRScraper) Crawl() ([]shared.Job, error) {
 		// Map WWR category to our standard categories
 		category := CategorizeJob(title, nil, item.Category)
 
+		// Detect workplace type from title/location/description
+		workplaceType := shared.DetectWorkplaceType(title, location, item.Description)
+
 		postedAt := time.Now()
 		if item.PubDate != "" {
 			// RSS feeds typically use RFC1123 or RFC2822 date format
@@ -131,15 +134,16 @@ func (w *WWRScraper) Crawl() ([]shared.Job, error) {
 		desc = strings.ReplaceAll(desc, "</li>", "\n")
 
 		job := shared.Job{
-			Title:       title,
-			Company:     company,
-			Location:    location,
-			Description: desc,
-			Source:      w.Name(),
-			URL:         item.Link,
-			RemoteType:  remoteType,
-			Category:    category,
-			PostedAt:    postedAt,
+			Title:         title,
+			Company:       company,
+			Location:      location,
+			Description:   desc,
+			Source:        w.Name(),
+			URL:           item.Link,
+			RemoteType:    remoteType,
+			WorkplaceType: workplaceType,
+			Category:      category,
+			PostedAt:      postedAt,
 		}
 		job.SetExpiration()
 		jobs = append(jobs, job)

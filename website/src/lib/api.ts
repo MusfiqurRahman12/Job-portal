@@ -9,7 +9,8 @@ export interface Job {
   description: string;
   source: string;
   url: string;
-  remote_type: "worldwide" | "country" | "hybrid";
+  remote_type: "worldwide" | "country";
+  workplace_type: "remote" | "hybrid" | "onsite";
   category: string;
   tags: string[];
   salary: string;
@@ -176,5 +177,18 @@ export async function fetchNewsBySlug(slug: string): Promise<News> {
     throw new Error(`Failed to fetch news article: ${slug}`);
   }
   return data as News;
+}
+
+export function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")          // Replace spaces with -
+    .replace(/&/g, "-and-")        // Replace & with 'and'
+    .replace(/[^\w\-]+/g, "")      // Remove all non-word chars
+    .replace(/\-\-+/g, "-")        // Replace multiple - with single -
+    .replace(/^-+/, "")            // Trim - from start of text
+    .replace(/-+$/, "");           // Trim - from end of text
 }
 

@@ -1,12 +1,12 @@
 import { Suspense } from "react";
-import { fetchJobs, fetchCategories, getHoursLeft, Job } from "@/lib/api";
+import { fetchJobs, fetchCategories, getHoursLeft, Job, slugify } from "@/lib/api";
 import Link from "next/link";
 import SearchForm from "@/components/SearchForm";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Browse All Remote Jobs | FutureTalent",
-  description: "Browse hundreds of active remote jobs in Software Engineering, Design, Marketing, Product Management, and DevOps. Filter by category, location, and skills.",
+  title: "Browse All Jobs — Remote, Hybrid & On-Site | FutureTalent",
+  description: "Browse hundreds of active remote, hybrid, and on-site jobs in Software Engineering, Design, Marketing, Product Management, and DevOps. Filter by category, location, and skills.",
 };
 
 function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
@@ -22,13 +22,28 @@ function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Engineering": "#8b5cf6",
-  "Design": "#ec4899",
-  "Marketing": "#f59e0b",
-  "Product": "#22d3ee",
-  "Data Science": "#34d399",
-  "DevOps": "#f97316",
+  "Frontend Development": "#ec4899",
+  "Backend Development": "#8b5cf6",
+  "Fullstack Development": "#f59e0b",
+  "Cloud & DevOps": "#22d3ee",
+  "Cybersecurity": "#dc2626",
+  "AI & Machine Learning": "#6366f1",
+  "Mobile Development": "#10b981",
+  "Data Science & Analytics": "#34d399",
+  "QA & Testing": "#f97316",
+  "Product Management": "#eab308",
+  "Design & Creative": "#ec4899",
+  "Marketing & Sales": "#f59e0b",
+  "Customer Support": "#22d3ee",
+  "Writing & Content": "#8b5cf6",
+  "HR & Operations": "#34d399",
   "General": "#94a3b8"
+};
+
+const WORKPLACE_BADGES: Record<string, { label: string; icon: string; color: string }> = {
+  remote: { label: "Remote", icon: "🏠", color: "#34d399" },
+  hybrid: { label: "Hybrid", icon: "🔄", color: "#f59e0b" },
+  onsite: { label: "On-Site", icon: "🏢", color: "#6366f1" },
 };
 
 interface PageProps {
@@ -95,8 +110,8 @@ async function JobsContent({ searchParams }: PageProps) {
         </div>
       </nav>
 
-      <main className="flex-1 pt-24 pb-20 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-8">
+      <main className="flex-1 pt-20 md:pt-28 pb-10 md:pb-16 px-4 md:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 lg:gap-8 min-h-[calc(100vh-12rem)]">
           
           {/* Mobile Page Title */}
           <div className="lg:hidden w-full">
@@ -190,6 +205,14 @@ async function JobsContent({ searchParams }: PageProps) {
                               <span className="inline-flex items-center gap-1">
                                 {job.remote_type === "worldwide" ? "🌍" : "📍"} {job.location}
                               </span>
+                              {(() => {
+                                const wpBadge = WORKPLACE_BADGES[job.workplace_type] || WORKPLACE_BADGES.remote;
+                                return (
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${wpBadge.color}15`, color: wpBadge.color, border: `1px solid ${wpBadge.color}30` }}>
+                                    {wpBadge.icon} {wpBadge.label}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <div className="flex gap-1.5 mt-2 flex-wrap">
                               {job.tags?.slice(0, 3).map((tag: string) => (
@@ -215,7 +238,7 @@ async function JobsContent({ searchParams }: PageProps) {
                             <div className="text-xs text-[#64748b] mt-0.5">{job.category}</div>
                           </div>
                           <ExpireBadge hoursLeft={hoursLeft} />
-                          <Link href={`/jobs/${job.id}`}
+                          <Link href={`/jobs/${job.id}-${slugify(job.title + " " + job.company)}`}
                             className="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 inline-block text-center"
                             style={{
                               background: `${color}15`,
@@ -284,10 +307,10 @@ async function JobsContent({ searchParams }: PageProps) {
       </main>
 
       <footer className="footer mt-auto">
-        <div className="max-w-5xl mx-auto px-6 py-16">
+        <div className="max-w-5xl mx-auto px-6 py-10 md:py-14">
           <div className="border-t border-[rgba(255,255,255,0.06)] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
             <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></span>
-            <span>Powered by AI • Built with ♥ for remote workers</span>
+            <span>Powered by AI • Built with ♥ for job seekers everywhere</span>
           </div>
         </div>
       </footer>
