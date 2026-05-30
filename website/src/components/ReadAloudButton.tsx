@@ -23,20 +23,36 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [estimatedTime, setEstimatedTime] = useState("");
   const [voiceGender, setVoiceGender] = useState<"female" | "male">("female");
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   
   // Keep track of the utterance so we can pause/resume
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // Initialize voices and listen to changes
   useEffect(() => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      setIsSupported(true);
-      
-      // Calculate estimated time (avg reading speed ~150 wpm)
-      const plainText = stripMarkdown(content);
-      const wordCount = plainText.split(/\s+/).length;
-      const minutes = Math.ceil(wordCount / 150);
-      setEstimatedTime(`${minutes} min listen`);
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    
+    setIsSupported(true);
+
+    const updateVoices = () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        const allVoices = window.speechSynthesis.getVoices();
+        setVoices(allVoices);
+      }
+    };
+
+    updateVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = updateVoices;
     }
+  }, []);
+
+  useEffect(() => {
+    // Calculate estimated time (avg reading speed ~150 wpm)
+    const plainText = stripMarkdown(content);
+    const wordCount = plainText.split(/\s+/).length;
+    const minutes = Math.ceil(wordCount / 150);
+    setEstimatedTime(`${minutes} min listen`);
 
     // Cleanup on unmount
     return () => {
@@ -63,29 +79,55 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
     const utterance = new SpeechSynthesisUtterance(plainText);
     
     // Attempt to pick a voice based on selected gender
-    const voices = window.speechSynthesis.getVoices();
-    let selectedVoice;
+    const voicesList = voices.length > 0 ? voices : (typeof window !== "undefined" ? window.speechSynthesis.getVoices() : []);
+    console.log("SpeechSynthesis voices loaded count:", voicesList.length);
+    
+    let selectedVoice: SpeechSynthesisVoice | undefined;
+    const englishVoices = voicesList.filter(v => v.lang.toLowerCase().includes("en"));
+    const candidateVoices = englishVoices.length > 0 ? englishVoices : voicesList;
 
     if (voiceGender === "female") {
-      const femaleRegex = /Female|Samantha|Zira|Victoria|Karen|Moira|Tessa|Veena|Hazel|Catherine|Susan|Jenny|Aria|Sonia|Mia|Google US English/i;
-      selectedVoice = voices.find(v => v.lang.includes("en") && femaleRegex.test(v.name));
+      const femaleRegex = /female|samantha|zira|victoria|karen|moira|tessa|veena|hazel|catherine|susan|jenny|aria|sonia|mia|libby|serena|fiona|stephanie|amanda|tracy|salli|kimberly|joanna|ivy|kendra|nicole|amy|emily|emma|nadine|elsa|anna|haruka|huihui|yaoyao|kalia|heera|sabina|helena|linda|helen|sara|zuzana|aurora|laila|sinji|yuna|xiaoxiao|yating|zhiyu/i;
+      
+      // 1. Try English female voice
+      selectedVoice = englishVoices.find(v => femaleRegex.test(v.name));
+      // 2. Try any female voice
+      if (!selectedVoice) {
+        selectedVoice = voicesList.find(v => femaleRegex.test(v.name));
+      }
+      // 3. Fallback to Google/Natural female-sounding voices in English
+      if (!selectedVoice) {
+        selectedVoice = englishVoices.find(v => v.name.includes("Google") || v.name.includes("Natural"));
+      }
     } else {
-      const maleRegex = /Male|Daniel|David|Arthur|George|Alex|Fred|Guy/i;
-      selectedVoice = voices.find(v => v.lang.includes("en") && maleRegex.test(v.name));
+      const maleRegex = /male|daniel|david|arthur|george|alex|fred|guy|ravi|stefan|filip|pavel|danny|james|john|robert|michael|william|richard|joseph|thomas|charles|christopher|matthew|anthony|mark|donald|steven|paul|andrew|joshua|kenneth|kevin|brian|timothy|ronald|jason|edward|jeffrey|ryan|jacob|gary|nicholas|eric|jonathan|stephen|larry|justin|scott|brandon|benjamin|samuel|gregory|frank|alexander|raymond|patrick|jack|dennis|jerry|tyler|aaron|jose|adam|nathan|henry|douglas|zachary|peter/i;
+      
+      // 1. Try English male voice
+      selectedVoice = englishVoices.find(v => maleRegex.test(v.name));
+      // 2. Try any male voice
+      if (!selectedVoice) {
+        selectedVoice = voicesList.find(v => maleRegex.test(v.name));
+      }
     }
 
-    // Fallback if the explicitly gendered voice wasn't found
+    // 4. Default voice fallback
     if (!selectedVoice) {
-      selectedVoice = voices.find(v => v.lang.startsWith("en-") && (v.name.includes("Google") || v.name.includes("Natural")));
+      selectedVoice = candidateVoices.find(v => v.default);
     }
-    
-    // Ultimate fallback to any English voice
+    // 5. First candidate English voice
     if (!selectedVoice) {
-      selectedVoice = voices.find(v => v.lang.startsWith("en-"));
+      selectedVoice = englishVoices[0];
+    }
+    // 6. First available voice
+    if (!selectedVoice) {
+      selectedVoice = voicesList[0];
     }
 
     if (selectedVoice) {
+      console.log("Selected voice for speech:", selectedVoice.name, selectedVoice.lang);
       utterance.voice = selectedVoice;
+    } else {
+      console.warn("No voice could be selected, playing default browser voice");
     }
 
     utterance.rate = 1.0; // Normal speed
