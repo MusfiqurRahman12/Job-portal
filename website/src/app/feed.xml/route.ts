@@ -1,7 +1,7 @@
 import { fetchJobs } from "@/lib/api";
 
 export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://futuretalent.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
   let jobs: any[] = [];
   
   try {

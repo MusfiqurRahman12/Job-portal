@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const rawId = resolvedParams.id;
   const actualId = rawId.split("-")[0];
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://futuretalent.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
 
   try {
     const job = await fetchJobById(actualId);
@@ -36,8 +36,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     };
   } catch (err) {
+    console.error("Failed to generate metadata for job details page:", err);
     return {
       title: "Job Details | FutureTalent",
+      alternates: {
+        canonical: `${baseUrl}/jobs/${rawId}`,
+      },
     };
   }
 }

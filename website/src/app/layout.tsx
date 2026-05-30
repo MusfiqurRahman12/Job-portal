@@ -26,6 +26,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.futuretalent.online"),
+  alternates: {
+    canonical: "/",
+  },
   title: "FutureTalent — Find Remote, Hybrid & On-Site Jobs Worldwide",
   manifest: "/manifest.json",
   icons: {

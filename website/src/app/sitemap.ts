@@ -3,7 +3,7 @@ import { fetchJobs, fetchNews, slugify } from "@/lib/api";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Use public URL if available, fallback to default production URL
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://futuretalent.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
 
   let jobUrls: MetadataRoute.Sitemap = [];
   try {
