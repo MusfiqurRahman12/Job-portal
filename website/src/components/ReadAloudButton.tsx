@@ -22,6 +22,7 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [estimatedTime, setEstimatedTime] = useState("");
+  const [voiceGender, setVoiceGender] = useState<"female" | "male">("female");
   
   // Keep track of the utterance so we can pause/resume
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -61,11 +62,28 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
     const plainText = stripMarkdown(content);
     const utterance = new SpeechSynthesisUtterance(plainText);
     
-    // Attempt to pick a good default English voice
+    // Attempt to pick a voice based on selected gender
     const voices = window.speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang.startsWith("en-") && v.name.includes("Google") || v.name.includes("Natural"));
-    if (englishVoice) {
-      utterance.voice = englishVoice;
+    let selectedVoice;
+
+    if (voiceGender === "female") {
+      selectedVoice = voices.find(v => v.lang.startsWith("en-") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Zira") || v.name.includes("Google US English") || v.name.includes("Victoria")));
+    } else {
+      selectedVoice = voices.find(v => v.lang.startsWith("en-") && (v.name.includes("Male") || v.name.includes("Daniel") || v.name.includes("David") || v.name.includes("Google UK English Male") || v.name.includes("Arthur")));
+    }
+
+    // Fallback if the explicitly gendered voice wasn't found
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => v.lang.startsWith("en-") && (v.name.includes("Google") || v.name.includes("Natural")));
+    }
+    
+    // Ultimate fallback to any English voice
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => v.lang.startsWith("en-"));
+    }
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
     }
 
     utterance.rate = 1.0; // Normal speed
@@ -148,7 +166,26 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
 
       <div className="flex flex-col pr-3">
         <span className="text-sm font-bold text-white leading-tight">Read Aloud</span>
-        <span className="text-xs text-[#94a3b8]">{estimatedTime}</span>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-xs text-[#94a3b8]">{estimatedTime}</span>
+          <span className="text-[#64748b] text-xs">•</span>
+          <select 
+            value={voiceGender} 
+            onChange={(e) => {
+              setVoiceGender(e.target.value as "female" | "male");
+              // If we change voice while paused or playing, it's best to stop so the next play uses the new voice
+              if (isPlaying || isPaused) {
+                window.speechSynthesis.cancel();
+                setIsPlaying(false);
+                setIsPaused(false);
+              }
+            }}
+            className="bg-transparent text-xs text-[#34d399] outline-none cursor-pointer appearance-none font-medium hover:text-white transition-colors"
+          >
+            <option value="female" className="bg-[#0f172a]">Female</option>
+            <option value="male" className="bg-[#0f172a]">Male</option>
+          </select>
+        </div>
       </div>
       
       {isPlaying && (
