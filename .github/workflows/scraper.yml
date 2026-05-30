@@ -24,7 +24,7 @@ jobs:
       run: go mod tidy
 
     - name: Build App
-      run: go build -o scraper-app ./...
+      run: go build -o scraper-app main.go
 
     - name: Upload App Artifact
       uses: actions/upload-artifact@v4
@@ -38,4 +38,4 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         GOOGLE_INDEXING_CREDENTIALS: ${{ secrets.GOOGLE_INDEXING_CREDENTIALS }}
-      run: go run main.go scrape
+      run: ./scraper-app scrape

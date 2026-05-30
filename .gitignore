@@ -35,3 +35,6 @@ website_preview_*.webp
 # Credentials (Google Indexing API)
 google-credentials.json
 scraper/google-credentials.json
+
+# Binaries
+scraper-app
