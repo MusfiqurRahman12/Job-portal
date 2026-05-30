@@ -111,7 +111,7 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
         {!isPlaying ? (
           <button 
             onClick={handlePlay}
-            className="w-10 h-10 rounded-full bg-[#34d399]/20 hover:bg-[#34d399]/30 text-[#34d399] flex items-center justify-center transition-colors border border-[#34d399]/30"
+            className="w-10 h-10 rounded-full bg-[#34d399]/20 hover:bg-[#34d399]/30 text-[#34d399] flex items-center justify-center transition-colors border border-[#34d399]/30 animate-neon-heartbeat"
             title={isPaused ? "Resume" : "Play"}
           >
             {/* Play Icon */}

@@ -700,3 +700,38 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.5);
 }
+
+/* ═══════════════════════════════════════════════════════
+   NEON HEARTBEAT ANIMATION
+   ═══════════════════════════════════════════════════════ */
+
+@keyframes neon-heartbeat {
+  0% {
+    box-shadow: 0 0 5px rgba(52, 211, 153, 0.2), 0 0 10px rgba(52, 211, 153, 0.2), inset 0 0 5px rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+  14% {
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.6), 0 0 20px rgba(52, 211, 153, 0.4), inset 0 0 10px rgba(52, 211, 153, 0.2);
+    border-color: rgba(52, 211, 153, 0.8);
+  }
+  28% {
+    box-shadow: 0 0 5px rgba(52, 211, 153, 0.2), 0 0 10px rgba(52, 211, 153, 0.2), inset 0 0 5px rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+  42% {
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.6), 0 0 20px rgba(52, 211, 153, 0.4), inset 0 0 10px rgba(52, 211, 153, 0.2);
+    border-color: rgba(52, 211, 153, 0.8);
+  }
+  70% {
+    box-shadow: 0 0 5px rgba(52, 211, 153, 0.2), 0 0 10px rgba(52, 211, 153, 0.2), inset 0 0 5px rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(52, 211, 153, 0.2), 0 0 10px rgba(52, 211, 153, 0.2), inset 0 0 5px rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+}
+
+.animate-neon-heartbeat {
+  animation: neon-heartbeat 1.5s ease-in-out infinite;
+}
