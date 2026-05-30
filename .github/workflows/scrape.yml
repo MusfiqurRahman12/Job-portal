@@ -55,7 +55,6 @@ jobs:
             • Workflow: ${{ github.workflow }}
             • Trigger: ${{ github.event_name }}
             • Branch: ${{ github.ref_name }}
-            • Time: ${{ github.event.head_commit.timestamp || 'scheduled' }}
             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
             🔗 View full error logs:
