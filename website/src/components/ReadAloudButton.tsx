@@ -67,9 +67,11 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
     let selectedVoice;
 
     if (voiceGender === "female") {
-      selectedVoice = voices.find(v => v.lang.startsWith("en-") && (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Zira") || v.name.includes("Google US English") || v.name.includes("Victoria")));
+      const femaleRegex = /Female|Samantha|Zira|Victoria|Karen|Moira|Tessa|Veena|Hazel|Catherine|Susan|Jenny|Aria|Sonia|Mia|Google US English/i;
+      selectedVoice = voices.find(v => v.lang.includes("en") && femaleRegex.test(v.name));
     } else {
-      selectedVoice = voices.find(v => v.lang.startsWith("en-") && (v.name.includes("Male") || v.name.includes("Daniel") || v.name.includes("David") || v.name.includes("Google UK English Male") || v.name.includes("Arthur")));
+      const maleRegex = /Male|Daniel|David|Arthur|George|Alex|Fred|Guy/i;
+      selectedVoice = voices.find(v => v.lang.includes("en") && maleRegex.test(v.name));
     }
 
     // Fallback if the explicitly gendered voice wasn't found
