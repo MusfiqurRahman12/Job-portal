@@ -85,10 +85,10 @@ func (db *DB) CleanExpiredJobs() ([]ExpiredJobInfo, error) {
 	query := `
 		UPDATE jobs 
 		SET is_active = FALSE 
-		WHERE is_active = TRUE AND expires_at < $1 - INTERVAL '24 hours'
+		WHERE is_active = TRUE AND expires_at < $1
 		RETURNING id, title, company
 	`
-	rows, err := db.conn.Query(query, time.Now())
+	rows, err := db.conn.Query(query, time.Now().Add(-24*time.Hour))
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +110,9 @@ func (db *DB) CleanExpiredJobs() ([]ExpiredJobInfo, error) {
 func (db *DB) DeleteExpiredJobs() (int64, error) {
 	query := `
 		DELETE FROM jobs 
-		WHERE is_active = FALSE AND expires_at < $1 - INTERVAL '8 days'
+		WHERE is_active = FALSE AND expires_at < $1
 	`
-	result, err := db.conn.Exec(query, time.Now())
+	result, err := db.conn.Exec(query, time.Now().Add(-8*24*time.Hour))
 	if err != nil {
 		return 0, err
 	}
