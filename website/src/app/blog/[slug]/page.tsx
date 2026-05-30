@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import { fetchNewsBySlug, fetchNews, News } from "../../../lib/api";
 import AdUnit from "@/components/AdUnit";
+import ReadAloudButton from "@/components/ReadAloudButton";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -269,6 +270,8 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
               <div className="text-xs text-[#94a3b8]">Verified Publisher</div>
             </div>
           </div>
+
+          <ReadAloudButton content={article.content} />
 
           <article className="prose prose-invert prose-lg max-w-none prose-headings:font-serif prose-headings:font-normal prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-p:text-[#cbd5e1] prose-p:leading-relaxed prose-a:text-[#34d399] prose-blockquote:border-l-[#34d399] prose-blockquote:text-[#94a3b8] prose-blockquote:font-style-italic prose-blockquote:bg-white/5 prose-blockquote:p-4 prose-blockquote:rounded-r-xl">
             <div dangerouslySetInnerHTML={{ __html: formatMarkdown(article.content) }} />
