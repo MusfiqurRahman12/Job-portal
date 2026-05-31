@@ -76,6 +76,9 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine.AddScraper(scraper.NewRemotiveScraper())   // Remotive (JSON API)
 	engine.AddScraper(scraper.NewArbeitnowScraper())  // Arbeitnow (JSON API — remote + hybrid + onsite)
 	engine.AddScraper(scraper.NewFindWorkScraper())   // FindWork.dev (JSON API — remote + hybrid + onsite)
+	engine.AddScraper(scraper.NewJobicyScraper())     // Jobicy (JSON API — remote)
+	engine.AddScraper(scraper.NewAtsScraper(aiService)) // New Search-based direct company website scraper
+
 	
 	// New standard RSS Job boards
 	engine.AddScraper(scraper.NewRSSJobScraper("Himalayas", "https://himalayas.app/jobs/rss"))
@@ -88,6 +91,12 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine.AddScraper(scraper.NewRSSJobScraper("WorkingNomads", "https://www.workingnomads.co/jobsfeed"))
 	engine.AddScraper(scraper.NewRSSJobScraper("JustRemote", "https://justremote.co/remote-jobs.rss"))
 	engine.AddScraper(scraper.NewRSSJobScraper("PythonOrg", "https://www.python.org/jobs/feed/rss/"))
+	engine.AddScraper(scraper.NewRSSJobScraper("Dribbble", "https://dribbble.com/jobs.rss"))
+	engine.AddScraper(scraper.NewRSSJobScraper("WorkAnywhere", "https://workanywhere.pro/rss.xml"))
+	engine.AddScraper(scraper.NewRSSJobScraper("RealWorkFromAnywhere", "https://www.realworkfromanywhere.com/rss.xml"))
+	engine.AddScraper(scraper.NewRSSJobScraper("LaraJobs", "https://larajobs.com/feed"))
+	engine.AddScraper(scraper.NewRSSJobScraper("GolangProjects", "https://www.golangprojects.com/rss.xml"))
+	engine.AddScraper(scraper.NewRSSJobScraper("JobsCollider", "https://jobscollider.com/remote-jobs.rss"))
 
 	// Register all news/blog RSS scrapers
 	engine.AddNewsScraper(scraper.NewRSSScraper("Sorry I Was On Mute", "https://sorryonmute.com/feed/"))
