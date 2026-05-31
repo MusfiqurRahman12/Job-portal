@@ -68,3 +68,16 @@ CREATE TABLE IF NOT EXISTS subscribers (
     email TEXT PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Outreach queue table for AI backlink outreach
+CREATE TABLE IF NOT EXISTS outreach_queue (
+    id SERIAL PRIMARY KEY,
+    job_id INTEGER REFERENCES jobs(id) ON DELETE SET NULL,
+    company TEXT NOT NULL,
+    contact_email TEXT NOT NULL,
+    email_subject TEXT NOT NULL,
+    email_body TEXT NOT NULL,
+    status TEXT DEFAULT 'pending_approval',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

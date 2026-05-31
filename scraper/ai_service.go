@@ -140,6 +140,11 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 	return respBody, nil
 }
 
+// CallGemini is a public wrapper around callGemini
+func (ai *AIService) CallGemini(prompt string, generationConfig map[string]interface{}) ([]byte, error) {
+	return ai.callGemini(prompt, generationConfig)
+}
+
 // OptimizeJob content for SEO using AI
 func (ai *AIService) OptimizeJob(job *shared.Job) error {
 	if len(ai.apiKeys) == 0 {

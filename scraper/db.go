@@ -399,3 +399,104 @@ func (db *DB) GetNewsCount() (int, error) {
 	return count, err
 }
 
+type OutreachDraft struct {
+	ID           int64
+	JobID        int64
+	Company      string
+	ContactEmail string
+	EmailSubject string
+	EmailBody    string
+	Status       string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+// GetJobsLackingOutreach returns up to 50 active, non-expired jobs that do not have an outreach draft generated yet
+func (db *DB) GetJobsLackingOutreach() ([]shared.Job, error) {
+	query := `
+		SELECT j.id, j.title, j.company, j.company_logo, j.location, j.description, j.source, j.url, 
+		       j.remote_type, j.workplace_type, j.category, j.tags, j.salary, j.posted_at, j.expires_at, j.created_at, j.is_active
+		FROM jobs j
+		LEFT JOIN outreach_queue o ON j.id = o.job_id
+		WHERE j.is_active = TRUE AND j.expires_at > $1 AND o.id IS NULL
+		ORDER BY j.posted_at DESC
+		LIMIT 50
+	`
+	rows, err := db.conn.Query(query, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var jobs []shared.Job
+	for rows.Next() {
+		var j shared.Job
+		err := rows.Scan(
+			&j.ID, &j.Title, &j.Company, &j.CompanyLogo, &j.Location, &j.Description,
+			&j.Source, &j.URL, &j.RemoteType, &j.WorkplaceType, &j.Category, pq.Array(&j.Tags),
+			&j.Salary, &j.PostedAt, &j.ExpiresAt, &j.CreatedAt, &j.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, j)
+	}
+	return jobs, nil
+}
+
+// SaveOutreachDraft inserts a new outreach draft into the queue
+func (db *DB) SaveOutreachDraft(draft OutreachDraft) error {
+	query := `
+		INSERT INTO outreach_queue (job_id, company, contact_email, email_subject, email_body, status)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	_, err := db.conn.Exec(query,
+		draft.JobID,
+		draft.Company,
+		draft.ContactEmail,
+		draft.EmailSubject,
+		draft.EmailBody,
+		draft.Status,
+	)
+	return err
+}
+
+// GetPendingOutreachDrafts returns all drafts that are pending approval
+func (db *DB) GetPendingOutreachDrafts() ([]OutreachDraft, error) {
+	query := `
+		SELECT id, job_id, company, contact_email, email_subject, email_body, status, created_at, updated_at
+		FROM outreach_queue
+		WHERE status = 'pending_approval'
+		ORDER BY created_at ASC
+	`
+	rows, err := db.conn.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var drafts []OutreachDraft
+	for rows.Next() {
+		var d OutreachDraft
+		err := rows.Scan(
+			&d.ID, &d.JobID, &d.Company, &d.ContactEmail, &d.EmailSubject, &d.EmailBody, &d.Status, &d.CreatedAt, &d.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		drafts = append(drafts, d)
+	}
+	return drafts, nil
+}
+
+// UpdateOutreachStatus updates a draft's approval status
+func (db *DB) UpdateOutreachStatus(id int64, status string) error {
+	query := `
+		UPDATE outreach_queue
+		SET status = $1, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $2
+	`
+	_, err := db.conn.Exec(query, status, id)
+	return err
+}
+

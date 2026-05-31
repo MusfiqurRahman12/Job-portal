@@ -108,7 +108,6 @@ async function JobsContent({ searchParams }: PageProps) {
             <a href="/jobs" className="nav-link active">Browse Jobs</a>
             <a href="/#categories" className="nav-link">Categories</a>
             <a href="/blog" className="nav-link">Blog</a>
-            <a href="#" className="nav-cta">Post a Job</a>
           </div>
         </div>
       </nav>
