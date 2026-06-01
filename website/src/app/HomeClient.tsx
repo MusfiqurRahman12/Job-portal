@@ -270,10 +270,10 @@ export default function Home() {
           .gt("expires_at", new Date().toISOString());
 
         if (!statsError && statsData) {
-          const uniqueSources = new Set(statsData.map(j => j.source).filter(Boolean));
+          const uniqueSources = new Set(statsData.map((j: any) => j.source).filter(Boolean));
           setTotalSources(uniqueSources.size);
 
-          const uniqueCountries = new Set(statsData.map(j => {
+          const uniqueCountries = new Set(statsData.map((j: any) => {
             if (!j.location) return null;
             const loc = j.location.trim();
             if (loc.toLowerCase().includes("world") || loc.toLowerCase().includes("anywhere")) {

@@ -8,6 +8,7 @@ import (
 	"job-portal-crawler/shared"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -96,7 +97,11 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 			return nil, fmt.Errorf("no gemini API keys configured")
 		}
 
-		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=%s", key)
+		model := os.Getenv("GEMINI_MODEL")
+		if model == "" {
+			model = "gemini-2.5-flash-lite"
+		}
+		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, key)
 
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 		if err != nil {

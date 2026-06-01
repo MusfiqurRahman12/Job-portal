@@ -62,15 +62,34 @@ func (r *RSSScraper) CrawlNews() ([]shared.News, error) {
 	// Set header to avoid scraping blocks
 	req.Header.Set("User-Agent", "RemoteHub News Aggregator/1.0 (Mozilla/5.0; Contact: admin@remotehub.io)")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute GET request: %w", err)
+	var resp *http.Response
+	var doErr error
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		resp, doErr = client.Do(req)
+		if doErr == nil && resp.StatusCode == 200 {
+			break // Success
+		}
+		
+		// If we got a response but it wasn't 200, we should close its body before the next retry
+		if resp != nil && resp.StatusCode != 200 {
+			resp.Body.Close()
+		}
+		
+		if i < maxRetries-1 {
+			backoff := time.Duration(1<<i) * time.Second // 1s, 2s, 4s
+			log.Printf("[%s] Feed request failed (err: %v), retrying in %v...", r.Name(), doErr, backoff)
+			time.Sleep(backoff)
+		}
 	}
-	defer resp.Body.Close()
+
+	if doErr != nil {
+		return nil, fmt.Errorf("failed to execute GET request after %d retries: %w", maxRetries, doErr)
+	}
+	defer resp.Body.Close() // Safe to close here because we broke on success
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("feed server returned code %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("feed server returned code %d after %d retries", resp.StatusCode, maxRetries)
 	}
 
 	xmlData, err := io.ReadAll(resp.Body)
