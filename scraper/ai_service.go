@@ -317,13 +317,13 @@ func (ai *AIService) OptimizeJobsBatch(jobs []*shared.Job) error {
 	log.Printf("[AI] Batch optimizing %d jobs...", len(jobs))
 
 	var sb strings.Builder
-	sb.WriteString("Rewrite each job posting below into professional, SEO-friendly markdown with sections: About, Responsibilities, Requirements. Keep all facts. Respond with a JSON array of strings, one per job, same order.\n")
+	sb.WriteString("Rewrite each job posting below into professional, SEO-friendly markdown with sections: About, Responsibilities, Requirements. Keep all facts. If information is missing, do NOT invent facts or use placeholders; instead, write a short generic sentence or omit the section entirely. Respond with a JSON array of strings, one per job, same order.\n")
 
 	for i, j := range jobs {
-		// Truncate very long descriptions to save tokens
+		// Truncate very long descriptions to save tokens, but keep it high enough to capture full details
 		desc := j.Description
-		if len(j.Description) > 1500 {
-			desc = desc[:1500] + "..."
+		if len(j.Description) > 15000 {
+			desc = desc[:15000] + "..."
 		}
 		sb.WriteString(fmt.Sprintf("\n--- JOB %d ---\n%s\n", i, desc))
 	}

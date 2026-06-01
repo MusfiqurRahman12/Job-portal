@@ -612,6 +612,25 @@ If no remote engineering/tech jobs are found, return an empty array [].`, compan
 			Category:      pj.Category,
 			PostedAt:      time.Now(),
 		}
+
+		// Fetch the full job description from the application URL
+		log.Printf("[ATS Scraper] Fetching full job description for %s at %s", job.Title, job.URL)
+		req, err := http.NewRequest("GET", job.URL, nil)
+		if err == nil {
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+			resp, err := a.client.Do(req)
+			if err == nil && resp.StatusCode == 200 {
+				bodyBytes, err := io.ReadAll(resp.Body)
+				if err == nil {
+					cleanDesc := CleanHTML(string(bodyBytes))
+					if len(cleanDesc) > 500 {
+						job.Description = cleanDesc
+					}
+				}
+				resp.Body.Close()
+			}
+		}
+
 		job.SetExpiration()
 		jobs = append(jobs, job)
 	}
