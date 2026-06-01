@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'job' | 'article'>('job');
+  const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper'>('job');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  
+  // Scraper State
+  const [runs, setRuns] = useState<any[]>([]);
+  const [scraperLoading, setScraperLoading] = useState(false);
 
   const handleJobSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,6 +69,44 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchRuns = async () => {
+    try {
+      const res = await fetch('/api/admin/scraper');
+      const data = await res.json();
+      if (res.ok && data.runs) {
+        setRuns(data.runs);
+      }
+    } catch (err) {
+      console.error('Failed to fetch runs', err);
+    }
+  };
+
+  const triggerScraper = async () => {
+    setScraperLoading(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/admin/scraper', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('Success! Scraper triggered. It should appear in the runs list shortly.');
+        setTimeout(fetchRuns, 5000); // Wait 5s then refresh list
+      } else {
+        setMessage(`Error: ${data.error || 'Failed to trigger'}`);
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setScraperLoading(false);
+    }
+  };
+
+  // Fetch runs automatically when the scraper tab is selected
+  useEffect(() => {
+    if (activeTab === 'scraper') {
+      fetchRuns();
+    }
+  }, [activeTab]);
+
   return (
     <div className="min-h-screen bg-[#06060a] text-white p-8">
       <div className="max-w-4xl mx-auto">
@@ -72,10 +114,10 @@ export default function AdminDashboard() {
           FutureTalent Admin Dashboard
         </h1>
 
-        <div className="flex space-x-4 mb-8 border-b border-gray-800 pb-2">
+        <div className="flex space-x-4 mb-8 border-b border-gray-800 pb-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('job')}
-            className={`px-4 py-2 font-medium rounded-t-lg transition-colors ${
+            className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
               activeTab === 'job' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -83,11 +125,19 @@ export default function AdminDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('article')}
-            className={`px-4 py-2 font-medium rounded-t-lg transition-colors ${
+            className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
               activeTab === 'article' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             Post an Article
+          </button>
+          <button
+            onClick={() => setActiveTab('scraper')}
+            className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
+              activeTab === 'scraper' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Auto Scraper
           </button>
         </div>
 
@@ -199,6 +249,65 @@ export default function AdminDashboard() {
                 {loading ? 'Posting Article...' : 'Post Article to Live Site'}
               </button>
             </form>
+          )}
+
+          {activeTab === 'scraper' && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                  <h2 className="text-xl font-bold">Auto Scraper Controls</h2>
+                  <p className="text-sm text-gray-400">View and manually trigger your GitHub Actions crawler.</p>
+                </div>
+                <button 
+                  onClick={triggerScraper}
+                  disabled={scraperLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {scraperLoading ? 'Triggering...' : 'Trigger Auto Scraper Now'}
+                </button>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-300">Recent Runs</h3>
+                  <button onClick={fetchRuns} className="text-sm text-blue-400 hover:underline">Refresh Status</button>
+                </div>
+                
+                {runs.length === 0 ? (
+                  <div className="text-center py-8 bg-[#1a1a24] rounded-lg border border-gray-700">
+                    <p className="text-gray-500 italic">No recent runs found, or click refresh to load.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {runs.map((run: any) => (
+                      <div key={run.id} className="bg-[#1a1a24] border border-gray-700 rounded-lg p-5 flex flex-col md:flex-row justify-between md:items-center gap-3">
+                        <div>
+                          <p className="font-medium text-[1.05rem] mb-1">
+                            {run.name} <span className="text-gray-500 text-sm ml-2">#{run.run_number}</span>
+                          </p>
+                          <p className="text-sm text-gray-400 flex items-center gap-3">
+                            <span className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${run.status === 'in_progress' || run.status === 'queued' ? 'bg-yellow-400 animate-pulse' : run.conclusion === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                              Status: {run.status}
+                            </span>
+                            <span>•</span>
+                            <span>Result: {run.conclusion || 'Pending'}</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4 border-t border-gray-800 pt-3 md:border-0 md:pt-0 mt-1 md:mt-0">
+                          <div className="text-xs text-gray-500 text-right">
+                            Started:<br/>{new Date(run.created_at).toLocaleString()}
+                          </div>
+                          <a href={run.html_url} target="_blank" rel="noreferrer" className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-emerald-400 text-sm font-medium transition-colors whitespace-nowrap">
+                            View Log ↗
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
