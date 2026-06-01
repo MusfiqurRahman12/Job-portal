@@ -84,7 +84,7 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 
 	var respBody []byte
 	var lastErr error
-	
+
 	// Retry loop allows rotating through all keys twice if rate-limited
 	maxAttempts := len(ai.apiKeys) * 2
 	if maxAttempts < 3 {
@@ -116,7 +116,7 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		
+
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close() // Close body immediately to avoid resource leaks
 		if err != nil {
@@ -249,7 +249,7 @@ You MUST respond in valid JSON format matching this exact schema:
 Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JSON object.`, art.Title, art.Content)
 
 	genConfig := map[string]interface{}{
-		"temperature": 0.7,
+		"temperature":      0.7,
 		"responseMimeType": "application/json",
 	}
 
@@ -329,7 +329,7 @@ func (ai *AIService) OptimizeJobsBatch(jobs []*shared.Job) error {
 	}
 
 	genConfig := map[string]interface{}{
-		"temperature": 0.7,
+		"temperature":      0.7,
 		"responseMimeType": "application/json",
 	}
 
@@ -403,7 +403,7 @@ func (ai *AIService) OptimizeNewsBatch(articles []*shared.News) error {
 	}
 
 	genConfig := map[string]interface{}{
-		"temperature": 0.7,
+		"temperature":      0.7,
 		"responseMimeType": "application/json",
 	}
 
@@ -439,11 +439,19 @@ func (ai *AIService) OptimizeNewsBatch(articles []*shared.News) error {
 
 		for i, art := range articles {
 			parsed := results[i]
-			if parsed.Title != "" { art.Title = parsed.Title }
-			if parsed.Category != "" { art.Category = parsed.Category }
-			if parsed.Excerpt != "" { art.Excerpt = parsed.Excerpt }
-			if parsed.Content != "" { art.Content = parsed.Content }
-			
+			if parsed.Title != "" {
+				art.Title = parsed.Title
+			}
+			if parsed.Category != "" {
+				art.Category = parsed.Category
+			}
+			if parsed.Excerpt != "" {
+				art.Excerpt = parsed.Excerpt
+			}
+			if parsed.Content != "" {
+				art.Content = parsed.Content
+			}
+
 			art.GenerateSlug()
 			art.AssignFallbackImage()
 			log.Printf("[AI] Optimized News (batch): %s [%s] -> Slug: %s", art.Title, art.Category, art.Slug)
