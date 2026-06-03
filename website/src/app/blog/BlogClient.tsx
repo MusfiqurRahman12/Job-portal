@@ -13,6 +13,11 @@ export default function BlogPage() {
   const [featuredPost, setFeaturedPost] = useState<News | null>(null);
   const [blogPosts, setBlogPosts] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 20;
 
   const headerRef = useRef<HTMLDivElement>(null);
   const featuredRef = useRef<HTMLDivElement>(null);
@@ -29,12 +34,25 @@ export default function BlogPage() {
   useEffect(() => {
     let active = true;
     const loadNews = async () => {
+      setLoading(true);
       try {
-        const response = await fetchNews(15);
+        const offset = (currentPage - 1) * pageSize;
+        const response = await fetchNews(pageSize, offset);
         if (!active) return;
+        
+        setTotalCount(response.count);
+
         if (response.news && response.news.length > 0) {
-          setFeaturedPost(response.news[0]);
-          setBlogPosts(response.news.slice(1));
+          if (currentPage === 1) {
+            setFeaturedPost(response.news[0]);
+            setBlogPosts(response.news.slice(1));
+          } else {
+            setFeaturedPost(null);
+            setBlogPosts(response.news);
+          }
+        } else {
+          setFeaturedPost(null);
+          setBlogPosts([]);
         }
       } catch (err) {
         console.error("Failed to load news:", err);
@@ -46,7 +64,47 @@ export default function BlogPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({
+      top: headerRef.current ? headerRef.current.offsetTop - 40 : 0,
+      behavior: "smooth",
+    });
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push("...");
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   useEffect(() => {
     if (loading) return;
@@ -263,6 +321,51 @@ export default function BlogPage() {
                     </Link>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-12 border-t border-white/5 pt-8">
+                <button
+                  disabled={currentPage === 1 || loading}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer text-white"
+                >
+                  ← Prev
+                </button>
+
+                {getPageNumbers().map((p, idx) => {
+                  if (p === "...") {
+                    return (
+                      <span key={`ellipsis-${idx}`} className="px-3 text-gray-500 font-bold">
+                        ...
+                      </span>
+                    );
+                  }
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => handlePageChange(p as number)}
+                      disabled={loading}
+                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                        currentPage === p
+                          ? "bg-[#34d399] text-black shadow-lg shadow-[#34d399]/20"
+                          : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+
+                <button
+                  disabled={currentPage === totalPages || loading}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer text-white"
+                >
+                  Next →
+                </button>
               </div>
             )}
           </>
