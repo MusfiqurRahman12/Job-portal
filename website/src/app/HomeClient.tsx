@@ -139,12 +139,23 @@ const WORKPLACE_BADGES: Record<string, { label: string; icon: string; color: str
 
 function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
   let cls = "expire-badge fresh";
-  let label = `${hoursLeft}h left`;
-  if (hoursLeft <= 4) {
-    cls = "expire-badge urgent";
-    label = `⚠ ${hoursLeft}h left`;
-  } else if (hoursLeft <= 12) {
-    cls = "expire-badge expiring";
+  let label = "";
+  if (hoursLeft <= 24) {
+    label = `${hoursLeft}h left`;
+    if (hoursLeft <= 4) {
+      cls = "expire-badge urgent";
+      label = `⚠ ${hoursLeft}h left`;
+    } else if (hoursLeft <= 12) {
+      cls = "expire-badge expiring";
+    }
+  } else {
+    const days = Math.floor(hoursLeft / 24);
+    const hours = hoursLeft % 24;
+    if (hours === 0) {
+      label = `${days}d left`;
+    } else {
+      label = `${days}d ${hours}h left`;
+    }
   }
   return <span className={cls}>{label}</span>;
 }
@@ -488,9 +499,9 @@ export default function Home() {
           </a>
           <div className="nav-links">
             <a href="#categories" className="nav-link">Categories</a>
-            <a href="#" className="nav-link">Companies</a>
-            <a href="/blog" className="nav-link">Blog</a>
-            <a href="/jobs" className="nav-cta-neon">Browse Jobs</a>
+            <Link href="/jobs" className="nav-link">Companies</Link>
+            <Link href="/blog" className="nav-link">Blog</Link>
+            <Link href="/jobs" className="nav-cta-neon">Browse Jobs</Link>
           </div>
         </div>
       </nav>
@@ -892,24 +903,24 @@ export default function Home() {
             </div>
             <div>
               <div className="footer-heading">Job Seekers</div>
-              <a href="#" className="footer-link">Browse Jobs</a>
-              <a href="#" className="footer-link">Companies</a>
-              <a href="#" className="footer-link">Salary Guide</a>
-              <a href="#" className="footer-link">Career Blog</a>
+              <Link href="/jobs" className="footer-link">Browse Jobs</Link>
+              <Link href="/jobs" className="footer-link">Companies</Link>
+              <Link href="/jobs" className="footer-link">Salary Guide</Link>
+              <Link href="/blog" className="footer-link">Career Blog</Link>
             </div>
             <div>
               <div className="footer-heading">Employers</div>
-              <a href="#" className="footer-link">Post a Job</a>
-              <a href="#" className="footer-link">Pricing</a>
-              <a href="#" className="footer-link">Featured Listing</a>
-              <a href="#" className="footer-link">API Access</a>
+              <Link href="/admin" className="footer-link">Post a Job</Link>
+              <Link href="/jobs" className="footer-link">Pricing</Link>
+              <Link href="/jobs" className="footer-link">Featured Listing</Link>
+              <Link href="/jobs" className="footer-link">API Access</Link>
             </div>
             <div>
               <div className="footer-heading">Company</div>
-              <a href="#" className="footer-link">About Us</a>
+              <Link href="/jobs" className="footer-link">About Us</Link>
               <Link href="/privacy" className="footer-link">Privacy Policy</Link>
-              <a href="#" className="footer-link">Terms of Service</a>
-              <a href="#" className="footer-link">Contact</a>
+              <Link href="/privacy" className="footer-link">Terms of Service</Link>
+              <a href="mailto:support@futuretalent.online" className="footer-link">Contact</a>
             </div>
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">

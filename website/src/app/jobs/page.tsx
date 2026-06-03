@@ -14,12 +14,23 @@ export const metadata: Metadata = {
 
 function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
   let cls = "expire-badge fresh";
-  let label = `${hoursLeft}h left`;
-  if (hoursLeft <= 4) {
-    cls = "expire-badge urgent";
-    label = `⚠ ${hoursLeft}h left`;
-  } else if (hoursLeft <= 12) {
-    cls = "expire-badge expiring";
+  let label = "";
+  if (hoursLeft <= 24) {
+    label = `${hoursLeft}h left`;
+    if (hoursLeft <= 4) {
+      cls = "expire-badge urgent";
+      label = `⚠ ${hoursLeft}h left`;
+    } else if (hoursLeft <= 12) {
+      cls = "expire-badge expiring";
+    }
+  } else {
+    const days = Math.floor(hoursLeft / 24);
+    const hours = hoursLeft % 24;
+    if (hours === 0) {
+      label = `${days}d left`;
+    } else {
+      label = `${days}d ${hours}h left`;
+    }
   }
   return <span className={cls}>{label}</span>;
 }

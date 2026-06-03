@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
             <Link href="/jobs" className="nav-link">Browse Jobs</Link>
             <Link href="/#categories" className="nav-link">Categories</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
-            <a href="#" className="nav-cta">Post a Job</a>
+            <Link href="/admin" className="nav-cta">Post a Job</Link>
           </div>
         </div>
       </nav>

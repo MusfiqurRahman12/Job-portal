@@ -112,7 +112,7 @@ export default async function JobDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      ></script>
 
       <div className="max-w-4xl mx-auto">
         <Link href="/jobs" className="inline-block text-[#94a3b8] hover:text-white mb-8 transition-colors">
@@ -124,7 +124,11 @@ export default async function JobDetailPage({ params }: Props) {
           <div className="absolute top-0 right-0 p-6">
             <span className={`expire-badge ${hoursLeft <= 4 ? "urgent" : hoursLeft <= 12 ? "expiring" : "fresh"}`}>
               {hoursLeft <= 4 && "⚠ "}
-              {hoursLeft}h left to apply
+              {hoursLeft <= 24 ? `${hoursLeft}h left to apply` : (() => {
+                const days = Math.floor(hoursLeft / 24);
+                const hours = hoursLeft % 24;
+                return hours === 0 ? `${days}d left to apply` : `${days}d ${hours}h left to apply`;
+              })()}
             </span>
           </div>
 

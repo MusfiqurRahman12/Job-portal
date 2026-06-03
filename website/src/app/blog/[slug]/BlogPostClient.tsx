@@ -10,13 +10,13 @@ import ReadAloudButton from "@/components/ReadAloudButton";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function BlogPostPage({ params, initialArticle }: { params: Promise<{ slug: string }>, initialArticle: News | null }) {
   const resolvedParams = use(params);
   const slug = resolvedParams.slug;
 
-  const [article, setArticle] = useState<News | null>(null);
+  const [article, setArticle] = useState<News | null>(initialArticle);
   const [nextArticle, setNextArticle] = useState<News | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialArticle);
   const [progress, setProgress] = useState(0);
   const [scrolled, setScrolled] = useState(false);
 
@@ -25,6 +25,23 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     async function loadArticle() {
+      // If we already have the article from the server, use it and only fetch footer recommendations
+      if (initialArticle && initialArticle.slug === slug) {
+        try {
+          const allNews = await fetchNews(50, 0);
+          const currentIndex = allNews.news.findIndex((n) => n.slug === slug);
+          if (currentIndex !== -1 && currentIndex < allNews.news.length - 1) {
+            setNextArticle(allNews.news[currentIndex + 1]);
+          } else if (allNews.news.length > 0) {
+            const fallback = allNews.news.find((n) => n.slug !== slug);
+            if (fallback) setNextArticle(fallback);
+          }
+        } catch {
+          // Non-critical recommendation loading fallback
+        }
+        return;
+      }
+
       try {
         const data = await fetchNewsBySlug(slug);
         setArticle(data);

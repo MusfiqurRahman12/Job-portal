@@ -42,5 +42,52 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
-  return <BlogPostClient params={params} />;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
+
+  let article = null;
+  try {
+    article = await fetchNewsBySlug(slug);
+  } catch (err) {
+    console.error("Failed to load article on server:", err);
+  }
+
+  const jsonLd = article ? {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": article.title,
+    "description": article.excerpt,
+    "image": article.image,
+    "datePublished": article.published_at || article.created_at,
+    "dateModified": article.updated_at || article.published_at || article.created_at,
+    "author": {
+      "@type": "Person",
+      "name": article.author,
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "FutureTalent",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${baseUrl}/favicon.ico`,
+      },
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/blog/${slug}`,
+    },
+  } : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        ></script>
+      )}
+      <BlogPostClient params={params} initialArticle={article} />
+    </>
+  );
 }
