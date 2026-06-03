@@ -40,14 +40,14 @@ func DetectWorkplaceType(title, location, description string) string {
 	return "remote"
 }
 
-// SetExpiration sets the expiration to 24 hours from now (scrape time).
+// SetExpiration sets the expiration to 30 days from now (scrape time).
 // We use time.Now() instead of PostedAt because many external job boards
 // return jobs posted days ago, which would immediately expire if based on PostedAt.
 func (j *Job) SetExpiration() {
 	if j.PostedAt.IsZero() {
 		j.PostedAt = time.Now()
 	}
-	j.ExpiresAt = time.Now().Add(24 * time.Hour)
+	j.ExpiresAt = time.Now().Add(30 * 24 * time.Hour)
 	j.IsActive = true
 }
 
