@@ -221,7 +221,7 @@ export default function BlogPage() {
               <div className="h-96 rounded-3xl bg-white/5 animate-pulse border border-white/10" />
             </div>
           </div>
-        ) : !featuredPost ? (
+        ) : (!featuredPost && blogPosts.length === 0) ? (
           /* Empty State Fallback */
           <div className="text-center py-20 bg-white/5 rounded-[2rem] border border-white/10 p-8">
             <h3 className="text-2xl font-bold text-white mb-4">No Articles Found</h3>
@@ -232,45 +232,47 @@ export default function BlogPage() {
         ) : (
           <>
             {/* Featured Post */}
-            <div 
-              ref={featuredRef}
-              className="relative w-full h-[300px] sm:h-[450px] md:h-[500px] rounded-[2rem] overflow-hidden mb-8 md:mb-12 group cursor-pointer border border-white/10 shadow-2xl shadow-[#34d399]/5"
-            >
-              <div className="absolute inset-0 overflow-hidden">
-                <img 
-                  src={featuredPost.image} 
-                  alt={featuredPost.title}
-                  className="featured-img w-full h-[120%] object-cover object-center -top-[10%] relative transition-transform duration-1000 group-hover:scale-105"
-                />
-              </div>
-              
-              {/* Editorial Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/80 to-transparent" />
-              
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 w-full p-8 md:p-12">
-                <Link href={`/blog/${featuredPost.slug}`} className="block">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="px-3 py-1 rounded-full bg-[#34d399]/20 text-[#34d399] border border-[#34d399]/30 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                      {featuredPost.category}
-                    </span>
-                    <span className="text-[#94a3b8] text-sm font-medium">{formatDate(featuredPost.published_at)}</span>
-                  </div>
-                  <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight group-hover:text-[#34d399] transition-colors duration-300">
-                    {featuredPost.title}
-                  </h2>
-                  <p className="text-[#cbd5e1] text-lg max-w-3xl line-clamp-2 md:line-clamp-3 mb-6">
-                    {featuredPost.excerpt}
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#34d399] to-blue-500 flex items-center justify-center text-white font-bold">
-                      {featuredPost.author.charAt(0)}
+            {featuredPost && (
+              <div 
+                ref={featuredRef}
+                className="relative w-full h-[300px] sm:h-[450px] md:h-[500px] rounded-[2rem] overflow-hidden mb-8 md:mb-12 group cursor-pointer border border-white/10 shadow-2xl shadow-[#34d399]/5"
+              >
+                <div className="absolute inset-0 overflow-hidden">
+                  <img 
+                    src={featuredPost.image} 
+                    alt={featuredPost.title}
+                    className="featured-img w-full h-[120%] object-cover object-center -top-[10%] relative transition-transform duration-1000 group-hover:scale-105"
+                  />
+                </div>
+                
+                {/* Editorial Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/80 to-transparent" />
+                
+                {/* Content */}
+                <div className="absolute bottom-0 left-0 w-full p-8 md:p-12">
+                  <Link href={`/blog/${featuredPost.slug}`} className="block">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="px-3 py-1 rounded-full bg-[#34d399]/20 text-[#34d399] border border-[#34d399]/30 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+                        {featuredPost.category}
+                      </span>
+                      <span className="text-[#94a3b8] text-sm font-medium">{formatDate(featuredPost.published_at)}</span>
                     </div>
-                    <span className="text-white font-medium">{featuredPost.author}</span>
-                  </div>
-                </Link>
+                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight group-hover:text-[#34d399] transition-colors duration-300">
+                      {featuredPost.title}
+                    </h2>
+                    <p className="text-[#cbd5e1] text-lg max-w-3xl line-clamp-2 md:line-clamp-3 mb-6">
+                      {featuredPost.excerpt}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#34d399] to-blue-500 flex items-center justify-center text-white font-bold">
+                        {featuredPost.author.charAt(0)}
+                      </div>
+                      <span className="text-white font-medium">{featuredPost.author}</span>
+                    </div>
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Ad Slot */}
             <AdUnit slot="2199071234" format="horizontal" style={{ minHeight: "100px", marginBottom: "2rem" }} />
