@@ -1,42 +1,34 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function proxy(req: NextRequest) {
-  // Only apply HTTP Basic Auth to the /admin and /api/admin paths
-  if (req.nextUrl.pathname.startsWith('/admin') || req.nextUrl.pathname.startsWith('/api/admin')) {
-    const basicAuth = req.headers.get('authorization');
-    const url = req.nextUrl;
+async function getExpectedToken(): Promise<string> {
+  const username = process.env.ADMIN_USERNAME || 'admin';
+  const password = process.env.ADMIN_PASSWORD || 'password';
+  const msgBuffer = new TextEncoder().encode(`${username}:${password}`);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
-    if (basicAuth) {
-      const authValue = basicAuth.split(' ')[1];
-      const [user, pwd] = atob(authValue).split(':');
+export async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-      const adminUser = process.env.ADMIN_USERNAME || 'admin';
-      const adminPwd = process.env.ADMIN_PASSWORD;
+  // Protect administrative API routes, except the auth route itself
+  if (pathname.startsWith('/api/admin') && pathname !== '/api/admin/auth') {
+    const adminSessionCookie = req.cookies.get('admin_session');
+    const expectedToken = await getExpectedToken();
 
-      if (!adminPwd) {
-        console.warn('ADMIN_PASSWORD is not set in environment variables');
-        // If no password is set, deny access completely to be safe
-        return new NextResponse('Admin password not configured on server', { status: 403 });
-      }
-
-      if (user === adminUser && pwd === adminPwd) {
-        return NextResponse.next();
-      }
+    if (!adminSessionCookie || adminSessionCookie.value !== expectedToken) {
+      return NextResponse.json(
+        { error: 'Authentication Required' },
+        { status: 401 }
+      );
     }
-
-    url.pathname = '/api/auth';
-    return new NextResponse('Authentication Required', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="Secure Area"',
-      },
-    });
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: ['/api/admin/:path*'],
 };

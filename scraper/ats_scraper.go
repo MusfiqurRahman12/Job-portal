@@ -525,7 +525,10 @@ Standard Categories:
 - Writing & Content
 - HR & Operations
 
-If no remote engineering/tech jobs are found, return an empty array [].`, companyName, companyName, cleanedText)
+If no remote engineering/tech jobs are found, return an empty array [].
+
+Page Content to Analyze:
+%s`, companyName, companyName, cleanedText)
 
 	genConfig := map[string]interface{}{
 		"temperature":      0.2,

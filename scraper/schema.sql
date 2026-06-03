@@ -63,6 +63,15 @@ FROM jobs
 WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP
 GROUP BY category;
 
+-- View for system statistics (total scraped/created and active counts)
+CREATE OR REPLACE VIEW system_stats_view AS
+SELECT 
+    (SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::int FROM jobs_id_seq) as total_jobs,
+    (SELECT COUNT(*)::int FROM jobs WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP) as active_jobs,
+    (SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::int FROM news_id_seq) as total_articles,
+    (SELECT COUNT(*)::int FROM news) as active_articles;
+
+
 -- Subscribers/Newsletter table for job alerts
 CREATE TABLE IF NOT EXISTS subscribers (
     email TEXT PRIMARY KEY,
