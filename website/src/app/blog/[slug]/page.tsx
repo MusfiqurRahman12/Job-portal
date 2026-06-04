@@ -60,7 +60,7 @@ export default async function Page({ params }: Props) {
     "description": article.excerpt,
     "image": article.image,
     "datePublished": article.published_at || article.created_at,
-    "dateModified": article.updated_at || article.published_at || article.created_at,
+    "dateModified": article.published_at || article.created_at,
     "author": {
       "@type": "Person",
       "name": article.author,

@@ -317,7 +317,13 @@ func (ai *AIService) OptimizeJobsBatch(jobs []*shared.Job) error {
 	log.Printf("[AI] Batch optimizing %d jobs...", len(jobs))
 
 	var sb strings.Builder
-	sb.WriteString("Rewrite each job posting below into professional, SEO-friendly markdown with sections: About, Responsibilities, Requirements. Keep all facts. If information is missing, do NOT invent facts or use placeholders; instead, write a short generic sentence or omit the section entirely. Respond with a JSON array of strings, one per job, same order.\n")
+	todayStr := time.Now().Format("2006-01-02")
+	sb.WriteString(fmt.Sprintf("You are an expert HR Specialist and recruiter. For each job posting below:\n" +
+		"1. Rewrite the job description into engaging, professional, SEO-optimized markdown with clear sections (About the Role, Responsibilities, Requirements, Benefits, etc. if mentioned). Keep all factual details (salary, location, company name, technical requirements) exactly as stated. Do not invent any new details.\n" +
+		"2. Extract the application deadline / closing date if mentioned anywhere in the job description or metadata (e.g. 'apply by June 30', 'closing date: 2026-06-30', 'deadline: 30 June'). If relative dates are mentioned (e.g., 'applications close in 2 weeks'), calculate it relative to today's date: %s.\n\n"+
+		"Respond with a JSON array of objects, one per job, in the same order. Each object must have these exact keys:\n"+
+		"- \"description\": (string) the rewritten job description\n"+
+		"- \"deadline_iso\": (string or null) the extracted/calculated deadline date in YYYY-MM-DD format, or null if not specified.\n", todayStr))
 
 	for i, j := range jobs {
 		// Truncate very long descriptions to save tokens, but keep it high enough to capture full details
@@ -354,7 +360,12 @@ func (ai *AIService) OptimizeJobsBatch(jobs []*shared.Job) error {
 
 	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
 		rawText := geminiResp.Candidates[0].Content.Parts[0].Text
-		var results []string
+		
+		var results []struct {
+			Description string  `json:"description"`
+			DeadlineISO *string `json:"deadline_iso"`
+		}
+		
 		if err := json.Unmarshal([]byte(rawText), &results); err != nil {
 			return fmt.Errorf("failed to parse structured AI output as JSON array: %w. Raw: %s", err, rawText)
 		}
@@ -364,11 +375,23 @@ func (ai *AIService) OptimizeJobsBatch(jobs []*shared.Job) error {
 		}
 
 		for i, j := range jobs {
-			desc := strings.TrimSpace(results[i])
+			res := results[i]
+			desc := strings.TrimSpace(res.Description)
 			desc = strings.TrimPrefix(desc, "```markdown")
 			desc = strings.TrimPrefix(desc, "```")
 			desc = strings.TrimSuffix(desc, "```")
 			j.Description = strings.TrimSpace(desc)
+
+			if res.DeadlineISO != nil && *res.DeadlineISO != "" {
+				deadlineStr := strings.TrimSpace(*res.DeadlineISO)
+				if parsedTime, err := time.Parse("2006-01-02", deadlineStr); err == nil {
+					expires := time.Date(parsedTime.Year(), parsedTime.Month(), parsedTime.Day(), 23, 59, 59, 0, time.Local)
+					if expires.After(time.Now()) {
+						j.ExpiresAt = expires
+						log.Printf("[AI] Extracted deadline for %s: %s", j.Title, j.ExpiresAt.Format("2006-01-02 15:04:05"))
+					}
+				}
+			}
 			log.Printf("[AI] Successfully optimized (batch): %s", j.Title)
 		}
 	}
