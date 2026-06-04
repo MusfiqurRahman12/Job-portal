@@ -61,6 +61,79 @@ function getEmploymentType(title: string, desc: string): string {
   return "FULL_TIME"; // Default fallback
 }
 
+/**
+ * Parses a freeform salary string into a structured Schema.org baseSalary object.
+ * Handles formats like:
+ *   "$80,000 - $120,000/year"
+ *   "€50k–€70k"
+ *   "120000"
+ *   "Up to $150,000"
+ *   "£45,000 per annum"
+ * Returns null if no numeric value can be extracted.
+ */
+function parseSalary(salary: string | null | undefined): Record<string, unknown> | null {
+  if (!salary || salary.trim() === "") return null;
+
+  // Strip commas and extract all numeric sequences (including decimals)
+  const cleaned = salary.replace(/,/g, "");
+  const numbers = cleaned.match(/\d+(?:\.\d+)?/g);
+  if (!numbers || numbers.length === 0) return null;
+
+  // Detect currency
+  let currency = "USD";
+  if (/£/.test(salary)) currency = "GBP";
+  else if (/€/.test(salary)) currency = "EUR";
+  else if (/CA\$|CAD/i.test(salary)) currency = "CAD";
+  else if (/AU\$|AUD/i.test(salary)) currency = "AUD";
+
+  // Detect unit (default to YEAR)
+  let unitText = "YEAR";
+  const lower = salary.toLowerCase();
+  if (/hour|\/hr|per hour/i.test(lower)) unitText = "HOUR";
+  else if (/month|\/mo/i.test(lower)) unitText = "MONTH";
+  else if (/week|\/wk/i.test(lower)) unitText = "WEEK";
+  else if (/day|\/day/i.test(lower)) unitText = "DAY";
+
+  // Scale "k" shorthand (e.g. "80k" → 80000)
+  const scaleNumber = (n: string, originalSalary: string, index: number): number => {
+    const value = parseFloat(n);
+    // Find whether "k" follows this number in the original string
+    const searchStr = originalSalary.replace(/,/g, "");
+    const pos = searchStr.indexOf(n, index * 2); // rough offset to avoid collision
+    const afterNum = searchStr.substring(pos + n.length, pos + n.length + 2).toLowerCase();
+    return afterNum.startsWith("k") ? value * 1000 : value;
+  };
+
+  const minVal = scaleNumber(numbers[0], salary, 0);
+  const maxVal = numbers.length >= 2 ? scaleNumber(numbers[1], salary, 1) : undefined;
+
+  if (maxVal && maxVal > minVal) {
+    // Range salary
+    return {
+      "@type": "MonetaryAmount",
+      "currency": currency,
+      "value": {
+        "@type": "QuantitativeValue",
+        "minValue": minVal,
+        "maxValue": maxVal,
+        "unitText": unitText,
+      },
+    };
+  }
+
+  // Single value salary
+  return {
+    "@type": "MonetaryAmount",
+    "currency": currency,
+    "value": {
+      "@type": "QuantitativeValue",
+      "value": minVal,
+      "unitText": unitText,
+    },
+  };
+}
+
+
 export default async function JobDetailPage({ params }: Props) {
   const resolvedParams = await params;
   const rawId = resolvedParams.id;
@@ -76,6 +149,11 @@ export default async function JobDetailPage({ params }: Props) {
 
   const hoursLeft = getHoursLeft(job.expires_at);
 
+  // Parse salary string into Schema.org-compliant numeric structure
+  const parsedSalary = parseSalary(job.salary);
+
+  const isRemote = job.remote_type === "worldwide" || job.location?.toLowerCase().includes("remote");
+
   // Generate Google Jobs schema structure (JSON-LD)
   const jsonLd = {
     "@context": "https://schema.org",
@@ -88,23 +166,33 @@ export default async function JobDetailPage({ params }: Props) {
     "hiringOrganization": {
       "@type": "Organization",
       "name": job.company,
-      "logo": job.company_logo && job.company_logo.length > 1 && job.company_logo.startsWith("http") ? job.company_logo : undefined,
+      ...(job.company_logo && job.company_logo.length > 1 && job.company_logo.startsWith("http")
+        ? { "logo": job.company_logo }
+        : {}),
     },
-    "jobLocationType": job.remote_type === "worldwide" || job.location?.toLowerCase().includes("remote") ? "TELECOMMUTE" : undefined,
-    "applicantLocationRequirements": job.remote_type === "worldwide" || job.location?.toLowerCase().includes("remote") ? {
-      "@type": "Country",
-      "name": job.location || "Worldwide"
-    } : undefined,
-    "baseSalary": job.salary ? {
-      "@type": "MonetaryAmount",
-      "currency": "USD",
-      "value": {
-        "@type": "QuantitativeValue",
-        "value": job.salary,
-        "unitText": "YEAR"
-      }
-    } : undefined,
+    // Remote job fields (only set when job is remote)
+    ...(isRemote ? {
+      "jobLocationType": "TELECOMMUTE",
+      "applicantLocationRequirements": {
+        "@type": "Country",
+        "name": job.location || "Worldwide",
+      },
+    } : {}),
+    // Physical location for on-site / hybrid jobs
+    ...(!isRemote && job.location ? {
+      "jobLocation": {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": job.location,
+        },
+      },
+    } : {}),
+    // Salary — omitted entirely when not available rather than emitting undefined
+    ...(parsedSalary ? { "baseSalary": parsedSalary } : {}),
   };
+
+
 
   return (
     <div className="min-h-screen pt-32 pb-16 px-6 relative z-10">
