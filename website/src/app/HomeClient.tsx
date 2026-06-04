@@ -917,14 +917,14 @@ export default function Home() {
             </div>
             <div>
               <div className="footer-heading">Company</div>
-              <Link href="/jobs" className="footer-link">About Us</Link>
+              <Link href="/about" className="footer-link">About Us</Link>
+              <Link href="/contact" className="footer-link">Contact</Link>
               <Link href="/privacy" className="footer-link">Privacy Policy</Link>
-              <Link href="/privacy" className="footer-link">Terms of Service</Link>
-              <a href="mailto:support@futuretalent.online" className="footer-link">Contact</a>
+              <Link href="/terms" className="footer-link">Terms of Service</Link>
             </div>
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
-            <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></span>
+            <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link> • <Link href="/terms" className="hover:underline hover:text-white">Terms of Service</Link></span>
             <span>Powered by AI • Built with ♥ for job seekers everywhere</span>
           </div>
         </div>

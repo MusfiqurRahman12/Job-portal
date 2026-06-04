@@ -138,7 +138,7 @@ export default function PrivacyPolicyPage() {
       <footer className="footer mt-auto">
         <div className="max-w-5xl mx-auto px-6 py-10 md:py-14">
           <div className="border-t border-[rgba(255,255,255,0.06)] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
-            <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></span>
+            <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link> • <Link href="/terms" className="hover:underline hover:text-white">Terms of Service</Link> • <Link href="/about" className="hover:underline hover:text-white">About</Link> • <Link href="/contact" className="hover:underline hover:text-white">Contact</Link></span>
             <span>Powered by AI • Built with ♥ for remote workers</span>
           </div>
         </div>
