@@ -4,8 +4,44 @@ import (
 	"fmt"
 	"job-portal-crawler/shared"
 	"log"
+	"strings"
 	"sync"
 )
+
+// minRawDescriptionLength is the minimum character count a scraped description
+// must have BEFORE being sent to Gemini. Jobs below this are thin-content stubs.
+const minRawDescriptionLength = 200
+
+// isThinContent returns true if the AI-rewritten job description is too sparse to publish.
+// Criteria:
+//   - Fewer than 150 words (too little content for SEO)
+//   - Contains known placeholder strings from scrapers that had no data to rewrite
+func isThinContent(desc string) bool {
+	// Known placeholder markers produced when scrapers return empty job details
+	thinMarkers := []string{
+		"[company information missing]",
+		"[responsibilities missing]",
+		"[requirements missing]",
+		"no specific responsibilities listed",
+		"no specific requirements listed",
+		"no responsibilities listed",
+		"no requirements listed",
+		"information not available",
+		"not mentioned in the job",
+		"not specified in the job",
+	}
+
+	lower := strings.ToLower(desc)
+	for _, marker := range thinMarkers {
+		if strings.Contains(lower, marker) {
+			return true
+		}
+	}
+
+	// Word count gate — fewer than 150 words is considered thin
+	words := strings.Fields(desc)
+	return len(words) < 150
+}
 
 // Scraper defines the interface for different job board crawlers
 type Scraper interface {
@@ -108,6 +144,12 @@ func (e *Engine) Run() {
 				}
 			}
 
+			// 2. Pre-AI Thin Content Filter — skip before wasting Gemini quota
+			if len(strings.TrimSpace(job.Description)) < minRawDescriptionLength {
+				log.Printf("[ThinContent] ⛔ Skipping '%s' @ %s — description too short", job.Title, job.Company)
+				continue
+			}
+
 			// Capture loop variable correctly
 			j := job
 			batch = append(batch, &j)
@@ -167,8 +209,15 @@ func (e *Engine) processJobBatch(jobs []*shared.Job) {
 		return // Do NOT save without AI rewrite
 	}
 
-	// 3. Save Gemini-rewritten jobs to Database
+	// 3. Save Gemini-rewritten jobs to Database (with thin content filter)
 	for _, j := range jobs {
+		// Thin Content Gate: skip jobs where AI rewrite produced insufficient content.
+		// This prevents low-quality pages from harming SEO and AdSense approval.
+		if isThinContent(j.Description) {
+			log.Printf("[Quality] ⛔ Skipping thin-content job (< 150 words or missing info): [%s] at %s", j.Title, j.Company)
+			continue
+		}
+
 		jobID, err := e.db.SaveJob(*j)
 		if err != nil {
 			log.Printf("Error saving job from %s: %v", j.Source, err)
