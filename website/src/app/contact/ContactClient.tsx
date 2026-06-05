@@ -347,22 +347,20 @@ export default function ContactClient() {
               >
                 <div className="flex items-start gap-4">
                   <div className="w-11 h-11 rounded-xl bg-[rgba(52,211,153,0.12)] border border-[rgba(52,211,153,0.25)] flex items-center justify-center text-xl flex-shrink-0">
-                    🔗
+                    🤝
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white mb-1">
-                      Open Source
+                      Partnership
                     </h3>
                     <a
-                      href="https://github.com/MusfiqurRahman12"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href="mailto:support@futuretalent.online"
                       className="text-[#a78bfa] hover:text-white transition-colors text-sm"
                     >
-                      github.com/MusfiqurRahman12
+                      support@futuretalent.online
                     </a>
                     <p className="text-xs text-[#64748b] mt-1">
-                      Report issues & feature requests
+                      For business and advertising inquiries
                     </p>
                   </div>
                 </div>

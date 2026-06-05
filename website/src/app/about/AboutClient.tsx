@@ -66,9 +66,6 @@ export default function AboutClient() {
               contactType: "customer support",
               url: "https://www.futuretalent.online/contact",
             },
-            sameAs: [
-              "https://github.com/MusfiqurRahman12",
-            ],
           }),
         }}
       />
