@@ -910,7 +910,7 @@ export default function Home() {
             </div>
             <div>
               <div className="footer-heading">Employers</div>
-              <Link href="/admin" className="footer-link">Post a Job</Link>
+              <Link href="/contact" className="footer-link">Partnerships</Link>
               <Link href="/jobs" className="footer-link">Pricing</Link>
               <Link href="/jobs" className="footer-link">Featured Listing</Link>
               <Link href="/jobs" className="footer-link">API Access</Link>

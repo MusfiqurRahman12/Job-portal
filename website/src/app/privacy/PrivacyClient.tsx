@@ -21,10 +21,9 @@ export default function PrivacyPolicyPage() {
             Future<span>Talent</span>
           </Link>
           <div className="nav-links">
-            <Link href="/jobs" className="nav-link">Browse Jobs</Link>
             <Link href="/#categories" className="nav-link">Categories</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
-            <Link href="/admin" className="nav-cta">Post a Job</Link>
+            <Link href="/jobs" className="nav-cta-neon">Browse Jobs</Link>
           </div>
         </div>
       </nav>
