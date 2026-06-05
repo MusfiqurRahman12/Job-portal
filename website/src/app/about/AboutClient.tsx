@@ -324,25 +324,27 @@ export default function AboutClient() {
                 </p>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
               {[
-                { label: "Frontend", value: "Next.js + React (Vercel)" },
-                { label: "Scraper Engine", value: "Go (Golang)" },
-                { label: "Database", value: "PostgreSQL (Supabase)" },
-                { label: "Parsing & Curation", value: "Automated Structuring" },
-                { label: "Automation", value: "GitHub Actions (CI/CD)" },
-                { label: "Search", value: "Schema.org + JSON-LD" },
-              ].map((item) => (
+                { name: "Next.js", icon: "🌐", delay: "0s", color: "rgba(255,255,255,0.03)" },
+                { name: "React", icon: "⚛️", delay: "0.4s", color: "rgba(97,218,251,0.05)" },
+                { name: "Golang", icon: "🐹", delay: "0.8s", color: "rgba(0,173,216,0.05)" },
+                { name: "PostgreSQL", icon: "🐘", delay: "1.2s", color: "rgba(51,103,145,0.05)" },
+                { name: "Supabase", icon: "⚡", delay: "1.6s", color: "rgba(63,207,142,0.05)" },
+                { name: "GitHub Actions", icon: "🚀", delay: "2.0s", color: "rgba(36,41,47,0.05)" },
+                { name: "JSON-LD Schema", icon: "🏷️", delay: "2.4s", color: "rgba(241,196,15,0.05)" },
+                { name: "Vercel", icon: "▲", delay: "2.8s", color: "rgba(255,255,255,0.05)" },
+              ].map((tech) => (
                 <div
-                  key={item.label}
-                  className="flex justify-between items-center border-b border-[rgba(255,255,255,0.06)] pb-3"
+                  key={tech.name}
+                  className="tech-card-float p-4 rounded-2xl border border-[rgba(255,255,255,0.06)] flex flex-col items-center justify-center gap-3 text-center transition-all hover:border-[rgba(139,92,246,0.3)] hover:bg-[rgba(139,92,246,0.03)] cursor-default"
+                  style={{
+                    animationDelay: tech.delay,
+                    background: tech.color,
+                  }}
                 >
-                  <span className="text-[#64748b] text-sm font-medium">
-                    {item.label}
-                  </span>
-                  <span className="text-white text-sm font-semibold">
-                    {item.value}
-                  </span>
+                  <span className="text-3xl select-none">{tech.icon}</span>
+                  <span className="text-sm font-semibold text-white tracking-wide">{tech.name}</span>
                 </div>
               ))}
             </div>
@@ -446,6 +448,23 @@ export default function AboutClient() {
         [data-reveal]:nth-child(2) { transition-delay: 0.1s; }
         [data-reveal]:nth-child(3) { transition-delay: 0.2s; }
         [data-reveal]:nth-child(4) { transition-delay: 0.3s; }
+
+        /* Floating keyframes for technology grid cards */
+        @keyframes float-animation {
+          0% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-6px);
+          }
+          100% {
+            transform: translateY(0px);
+          }
+        }
+
+        .tech-card-float {
+          animation: float-animation 6s ease-in-out infinite;
+        }
       `}</style>
     </div>
   );
