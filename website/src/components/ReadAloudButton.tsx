@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 interface ReadAloudButtonProps {
   content: string; // The markdown or raw text content of the article
@@ -17,6 +17,58 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
+// Lists of known female/male voice name fragments
+const FEMALE_FRAGMENTS = [
+  "female", "samantha", "zira", "victoria", "karen", "moira", "tessa",
+  "veena", "hazel", "catherine", "susan", "jenny", "aria", "sonia", "mia",
+  "libby", "serena", "fiona", "stephanie", "amanda", "tracy", "salli",
+  "kimberly", "joanna", "ivy", "kendra", "nicole", "amy", "emily", "emma",
+  "nadine", "elsa", "anna", "haruka", "huihui", "yaoyao", "heera", "sabina",
+  "helena", "linda", "helen", "sara", "zuzana", "aurora", "laila", "yuna",
+  "xiaoxiao", "yating", "zhiyu",
+];
+
+const MALE_FRAGMENTS = [
+  "male", "daniel", "david", "arthur", "george", "alex", "fred", "guy",
+  "ravi", "stefan", "filip", "danny", "james", "john", "robert", "michael",
+  "william", "richard", "thomas", "christopher", "matthew", "mark", "steven",
+  "paul", "andrew", "joshua", "kevin", "brian", "jason", "edward", "jeffrey",
+  "ryan", "jacob", "gary", "nicholas", "eric", "jonathan", "stephen", "larry",
+  "brandon", "samuel", "gregory", "frank", "alexander", "raymond", "jack",
+];
+
+function pickVoice(
+  voicesList: SpeechSynthesisVoice[],
+  gender: "female" | "male"
+): SpeechSynthesisVoice | undefined {
+  if (voicesList.length === 0) return undefined;
+
+  const fragments = gender === "female" ? FEMALE_FRAGMENTS : MALE_FRAGMENTS;
+  const regex = new RegExp(fragments.join("|"), "i");
+
+  const englishVoices = voicesList.filter((v) =>
+    v.lang.toLowerCase().startsWith("en")
+  );
+  const pool = englishVoices.length > 0 ? englishVoices : voicesList;
+
+  // 1. Exact gender word in name (e.g. "Google UK English Male")
+  const exactMatch = pool.find((v) =>
+    v.name.toLowerCase().includes(gender)
+  );
+  if (exactMatch) return exactMatch;
+
+  // 2. Fragment match in name
+  const fragmentMatch = pool.find((v) => regex.test(v.name));
+  if (fragmentMatch) return fragmentMatch;
+
+  // 3. Default browser voice
+  const defaultVoice = pool.find((v) => v.default);
+  if (defaultVoice) return defaultVoice;
+
+  // 4. First English or first available
+  return pool[0];
+}
+
 export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
   const [isSupported, setIsSupported] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -24,37 +76,58 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
   const [estimatedTime, setEstimatedTime] = useState("");
   const [voiceGender, setVoiceGender] = useState<"female" | "male">("female");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  
-  // Keep track of the utterance so we can pause/resume
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Ref mirrors state so handlePlay always sees the latest gender (avoids stale closure)
+  const voiceGenderRef = useRef<"female" | "male">("female");
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   // Initialize voices and listen to changes
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    
+
     setIsSupported(true);
 
     const updateVoices = () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        const allVoices = window.speechSynthesis.getVoices();
+      const allVoices = window.speechSynthesis.getVoices();
+      if (allVoices.length > 0) {
         setVoices(allVoices);
+        voicesRef.current = allVoices;
       }
     };
 
+    // Chrome loads voices asynchronously; Firefox may have them immediately
     updateVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = updateVoices;
-    }
+    window.speechSynthesis.onvoiceschanged = updateVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
   }, []);
 
+  // Keep the ref in sync whenever the dropdown changes
+  const handleGenderChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const gender = e.target.value as "female" | "male";
+      setVoiceGender(gender);
+      voiceGenderRef.current = gender;
+
+      // Stop playback so the next Press uses the new voice
+      if (isPlaying || isPaused) {
+        window.speechSynthesis.cancel();
+        setIsPlaying(false);
+        setIsPaused(false);
+      }
+    },
+    [isPlaying, isPaused]
+  );
+
   useEffect(() => {
-    // Calculate estimated time (avg reading speed ~150 wpm)
+    // Calculate estimated time (avg listening speed ~150 wpm)
     const plainText = stripMarkdown(content);
     const wordCount = plainText.split(/\s+/).length;
     const minutes = Math.ceil(wordCount / 150);
     setEstimatedTime(`${minutes} min listen`);
 
-    // Cleanup on unmount
     return () => {
       if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
@@ -62,7 +135,7 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
     };
   }, [content]);
 
-  const handlePlay = () => {
+  const handlePlay = useCallback(() => {
     if (!window.speechSynthesis) return;
 
     if (isPaused) {
@@ -77,61 +150,30 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
 
     const plainText = stripMarkdown(content);
     const utterance = new SpeechSynthesisUtterance(plainText);
-    
-    // Attempt to pick a voice based on selected gender
-    const voicesList = voices.length > 0 ? voices : (typeof window !== "undefined" ? window.speechSynthesis.getVoices() : []);
-    console.log("SpeechSynthesis voices loaded count:", voicesList.length);
-    
-    let selectedVoice: SpeechSynthesisVoice | undefined;
-    const englishVoices = voicesList.filter(v => v.lang.toLowerCase().includes("en"));
-    const candidateVoices = englishVoices.length > 0 ? englishVoices : voicesList;
 
-    if (voiceGender === "female") {
-      const femaleRegex = /female|samantha|zira|victoria|karen|moira|tessa|veena|hazel|catherine|susan|jenny|aria|sonia|mia|libby|serena|fiona|stephanie|amanda|tracy|salli|kimberly|joanna|ivy|kendra|nicole|amy|emily|emma|nadine|elsa|anna|haruka|huihui|yaoyao|kalia|heera|sabina|helena|linda|helen|sara|zuzana|aurora|laila|sinji|yuna|xiaoxiao|yating|zhiyu/i;
-      
-      // 1. Try English female voice
-      selectedVoice = englishVoices.find(v => femaleRegex.test(v.name));
-      // 2. Try any female voice
-      if (!selectedVoice) {
-        selectedVoice = voicesList.find(v => femaleRegex.test(v.name));
-      }
-      // 3. Fallback to Google/Natural female-sounding voices in English
-      if (!selectedVoice) {
-        selectedVoice = englishVoices.find(v => v.name.includes("Google") || v.name.includes("Natural"));
-      }
-    } else {
-      const maleRegex = /male|daniel|david|arthur|george|alex|fred|guy|ravi|stefan|filip|pavel|danny|james|john|robert|michael|william|richard|joseph|thomas|charles|christopher|matthew|anthony|mark|donald|steven|paul|andrew|joshua|kenneth|kevin|brian|timothy|ronald|jason|edward|jeffrey|ryan|jacob|gary|nicholas|eric|jonathan|stephen|larry|justin|scott|brandon|benjamin|samuel|gregory|frank|alexander|raymond|patrick|jack|dennis|jerry|tyler|aaron|jose|adam|nathan|henry|douglas|zachary|peter/i;
-      
-      // 1. Try English male voice
-      selectedVoice = englishVoices.find(v => maleRegex.test(v.name));
-      // 2. Try any male voice
-      if (!selectedVoice) {
-        selectedVoice = voicesList.find(v => maleRegex.test(v.name));
-      }
+    // Use ref so we always have the latest gender, even if called from inside a stale closure
+    const currentGender = voiceGenderRef.current;
+
+    // Prefer the ref (most up to date) but fall back to live getVoices() call
+    let currentVoices = voicesRef.current;
+    if (currentVoices.length === 0) {
+      currentVoices = window.speechSynthesis.getVoices();
+      voicesRef.current = currentVoices;
     }
 
-    // 4. Default voice fallback
-    if (!selectedVoice) {
-      selectedVoice = candidateVoices.find(v => v.default);
-    }
-    // 5. First candidate English voice
-    if (!selectedVoice) {
-      selectedVoice = englishVoices[0];
-    }
-    // 6. First available voice
-    if (!selectedVoice) {
-      selectedVoice = voicesList[0];
-    }
+    const selectedVoice = pickVoice(currentVoices, currentGender);
 
     if (selectedVoice) {
-      console.log("Selected voice for speech:", selectedVoice.name, selectedVoice.lang);
+      console.log(
+        `[ReadAloud] Using ${currentGender} voice: "${selectedVoice.name}" (${selectedVoice.lang})`
+      );
       utterance.voice = selectedVoice;
     } else {
-      console.warn("No voice could be selected, playing default browser voice");
+      console.warn("[ReadAloud] No matching voice found – using browser default");
     }
 
-    utterance.rate = 1.0; // Normal speed
-    utterance.pitch = 1.0;
+    utterance.rate = 1.0;
+    utterance.pitch = currentGender === "male" ? 0.85 : 1.05;
 
     utterance.onend = () => {
       setIsPlaying(false);
@@ -139,31 +181,29 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
     };
 
     utterance.onerror = (e) => {
-      console.error("Speech synthesis error", e);
+      console.error("[ReadAloud] Speech synthesis error", e);
       setIsPlaying(false);
       setIsPaused(false);
     };
 
-    utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-    
     setIsPlaying(true);
     setIsPaused(false);
-  };
+  }, [content, isPaused]);
 
-  const handlePause = () => {
+  const handlePause = useCallback(() => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.pause();
     setIsPlaying(false);
     setIsPaused(true);
-  };
+  }, []);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     setIsPlaying(false);
     setIsPaused(false);
-  };
+  }, []);
 
   if (!isSupported) return null;
 
@@ -171,7 +211,7 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
     <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 w-fit mb-8 backdrop-blur-md">
       <div className="flex items-center gap-2">
         {!isPlaying ? (
-          <button 
+          <button
             onClick={handlePlay}
             className="w-10 h-10 rounded-full bg-[#34d399]/20 hover:bg-[#34d399]/30 text-[#34d399] flex items-center justify-center transition-colors border border-[#34d399]/30 animate-neon-heartbeat"
             title={isPaused ? "Resume" : "Play"}
@@ -182,7 +222,7 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
             </svg>
           </button>
         ) : (
-          <button 
+          <button
             onClick={handlePause}
             className="w-10 h-10 rounded-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 flex items-center justify-center transition-colors border border-yellow-500/30"
             title="Pause"
@@ -195,7 +235,7 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
         )}
 
         {(isPlaying || isPaused) && (
-          <button 
+          <button
             onClick={handleStop}
             className="w-10 h-10 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-500 flex items-center justify-center transition-colors border border-red-500/30"
             title="Stop"
@@ -213,30 +253,55 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs text-[#94a3b8]">{estimatedTime}</span>
           <span className="text-[#64748b] text-xs">•</span>
-          <select 
-            value={voiceGender} 
-            onChange={(e) => {
-              setVoiceGender(e.target.value as "female" | "male");
-              // If we change voice while paused or playing, it's best to stop so the next play uses the new voice
+          {/* Voice gender selector — shown with icon labels */}
+          <button
+            onClick={() => {
+              const next = voiceGender === "female" ? "male" : "female";
+              setVoiceGender(next);
+              voiceGenderRef.current = next;
               if (isPlaying || isPaused) {
                 window.speechSynthesis.cancel();
                 setIsPlaying(false);
                 setIsPaused(false);
               }
             }}
-            className="bg-transparent text-xs text-[#34d399] outline-none cursor-pointer appearance-none font-medium hover:text-white transition-colors"
+            className="flex items-center gap-1 text-xs text-[#34d399] hover:text-white transition-colors font-medium cursor-pointer"
+            title={`Switch to ${voiceGender === "female" ? "male" : "female"} voice`}
           >
-            <option value="female" className="bg-[#0f172a]">Female</option>
-            <option value="male" className="bg-[#0f172a]">Male</option>
+            {voiceGender === "female" ? (
+              <>
+                <span>♀</span>
+                <span>Female</span>
+              </>
+            ) : (
+              <>
+                <span>♂</span>
+                <span>Male</span>
+              </>
+            )}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3 opacity-60">
+              <path fillRule="evenodd" d="M8 1a.75.75 0 0 1 .75.75v10.638l3.96-4.158a.75.75 0 1 1 1.08 1.04l-5.25 5.5a.75.75 0 0 1-1.08 0l-5.25-5.5a.75.75 0 1 1 1.08-1.04l3.96 4.158V1.75A.75.75 0 0 1 8 1Z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          {/* Hidden but accessible select for screen readers */}
+          <select
+            value={voiceGender}
+            onChange={handleGenderChange}
+            className="sr-only"
+            aria-label="Voice gender"
+          >
+            <option value="female">Female</option>
+            <option value="male">Male</option>
           </select>
         </div>
       </div>
-      
+
       {isPlaying && (
         <div className="flex items-center gap-1 ml-2">
-          <div className="w-1 h-3 bg-[#34d399] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-1 h-4 bg-[#34d399] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-1 h-2 bg-[#34d399] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="w-1 h-3 bg-[#34d399] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+          <div className="w-1 h-4 bg-[#34d399] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+          <div className="w-1 h-2 bg-[#34d399] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
         </div>
       )}
     </div>
