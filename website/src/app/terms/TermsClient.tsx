@@ -84,7 +84,7 @@ export default function TermsClient() {
               <section className="space-y-4">
                 <h2 className="text-2xl font-bold text-white">2. Job Listings & External Links</h2>
                 <p>
-                  FutureTalent is a job aggregator. We use automated algorithms and AI curation (powered by Google Gemini) to gather, extract, and rewrite job listings from third-party websites for readability.
+                  FutureTalent is a job aggregator. We use automated algorithms and advanced structural parsing to gather, extract, and format job listings from third-party websites for readability.
                 </p>
                 <p>
                   We do not hire employees directly, nor do we act as an employer, agent, or representative of any company posting jobs on our platform. We are not responsible for the accuracy, legality, content, or availability of external job postings. When you apply for a job, you will be redirected to the employer's official website. It is your responsibility to verify the legitimacy of any employer or job opportunity before submitting personal information or accepting employment.

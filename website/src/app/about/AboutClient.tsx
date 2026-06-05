@@ -193,10 +193,10 @@ export default function AboutClient() {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                icon: "🤖",
-                title: "AI-Powered Curation",
+                icon: "🔍",
+                title: "Automated Curation",
                 description:
-                  "Our scraper crawls 200+ job boards and company ATS systems every day. Google Gemini AI rewrites each listing for clarity, consistency, and SEO — ensuring you get clean, readable job descriptions.",
+                  "Our scraper crawls 200+ job boards and company ATS systems every day. Advanced algorithms structure and format each listing for clarity, consistency, and SEO — ensuring you get clean, readable job descriptions.",
                 color: "rgba(139, 92, 246, 0.12)",
                 border: "rgba(139, 92, 246, 0.25)",
               },
@@ -286,7 +286,7 @@ export default function AboutClient() {
               <ul className="space-y-3">
                 {[
                   "Automated scrapers fetch raw listings from verified sources — never user-submitted spam.",
-                  "Google Gemini AI rewrites descriptions into a consistent, professional format with clear sections (About the Role, Responsibilities, Requirements, Benefits).",
+                  "Advanced parsers format job details into a consistent, professional layout with clear sections (About the Role, Responsibilities, Requirements, Benefits).",
                   "Thin content is automatically filtered — jobs with insufficient detail are rejected before publishing.",
                   "Application deadlines are extracted and enforced — expired jobs are automatically deactivated within hours.",
                   "Duplicate detection prevents the same job from appearing twice, even across different sources.",
@@ -300,9 +300,8 @@ export default function AboutClient() {
                 ))}
               </ul>
               <p>
-                Our blog articles are curated from reputable tech and career
-                publications, then rewritten and enhanced by AI to provide
-                unique, actionable insights for remote workers and job seekers.
+                Our career blog offers unique, actionable insights and expert-reviewed
+                guides to help remote workers and job seekers excel in their job hunts.
               </p>
             </div>
           </article>
@@ -330,7 +329,7 @@ export default function AboutClient() {
                 { label: "Frontend", value: "Next.js + React (Vercel)" },
                 { label: "Scraper Engine", value: "Go (Golang)" },
                 { label: "Database", value: "PostgreSQL (Supabase)" },
-                { label: "AI Processing", value: "Google Gemini API" },
+                { label: "Parsing & Curation", value: "Automated Structuring" },
                 { label: "Automation", value: "GitHub Actions (CI/CD)" },
                 { label: "Search", value: "Schema.org + JSON-LD" },
               ].map((item) => (
