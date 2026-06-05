@@ -454,7 +454,7 @@ export default function ContactClient() {
                 Terms of Service
               </Link>
             </span>
-            <span>Powered by AI • Built with ♥ for job seekers everywhere</span>
+            <span>Built with ♥ for job seekers everywhere</span>
           </div>
         </div>
       </footer>

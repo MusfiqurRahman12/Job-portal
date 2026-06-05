@@ -925,7 +925,7 @@ export default function Home() {
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[#64748b] text-sm">
             <span>© 2026 FutureTalent. All rights reserved. • <Link href="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link> • <Link href="/terms" className="hover:underline hover:text-white">Terms of Service</Link></span>
-            <span>Powered by AI • Built with ♥ for job seekers everywhere</span>
+            <span>Built with ♥ for job seekers everywhere</span>
           </div>
         </div>
       </footer>

@@ -58,7 +58,7 @@ export default function AboutClient() {
             name: "FutureTalent",
             url: "https://www.futuretalent.online",
             description:
-              "AI-powered job aggregator curating remote, hybrid, and on-site opportunities from 200+ sources daily.",
+              "Comprehensive job aggregator curating remote, hybrid, and on-site opportunities from 200+ sources daily.",
             foundingDate: "2026",
             contactPoint: {
               "@type": "ContactPoint",
@@ -138,7 +138,7 @@ export default function AboutClient() {
             className="reveal-up text-lg md:text-xl text-[#94a3b8] max-w-2xl mx-auto leading-relaxed"
           >
             We're building the fastest way to discover career opportunities
-            worldwide — powered by AI, curated with care, and completely free
+            worldwide — curated with care, updated daily, and completely free
             for job seekers.
           </p>
         </div>
@@ -175,8 +175,8 @@ export default function AboutClient() {
                 media — and most people miss them.
               </p>
               <p>
-                We built an AI-powered aggregator that scans <strong>200+
-                sources</strong> every 24 hours, rewrites job descriptions for
+                We built a smart career aggregator that scans <strong>200+
+                sources</strong> every 24 hours, standardizes job listings for
                 clarity and consistency, and delivers them in a single,
                 beautifully designed experience. Whether you're looking for a
                 remote engineering role, a hybrid marketing position, or an
@@ -422,7 +422,7 @@ export default function AboutClient() {
                 Terms of Service
               </Link>
             </span>
-            <span>Powered by AI • Built with ♥ for job seekers everywhere</span>
+            <span>Built with ♥ for job seekers everywhere</span>
           </div>
         </div>
       </footer>
