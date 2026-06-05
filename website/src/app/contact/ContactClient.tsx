@@ -226,6 +226,7 @@ export default function ContactClient() {
                     <option value="report">Report a Job Listing</option>
                     <option value="feedback">Feedback & Suggestions</option>
                     <option value="partnership">Partnership / Business</option>
+                    <option value="advertisement">Advertisement</option>
                     <option value="bug">Bug Report</option>
                     <option value="other">Other</option>
                   </select>
