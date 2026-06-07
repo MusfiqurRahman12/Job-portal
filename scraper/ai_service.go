@@ -514,6 +514,13 @@ func (ai *AIService) GenerateOriginalArticles(jobsContext []shared.Job, count in
 	sb.WriteString(fmt.Sprintf(`You are an expert tech, career, and remote-work blogger.
 Your task is to write exactly %d highly engaging, completely original articles. 
 Write in a "story mode" and human-like tone designed to attract readers and build SEO authority.
+
+CRUCIAL AD SENSE POLICY INSTRUCTIONS:
+- You MUST adhere strictly to Google AdSense Publisher Policies and Google Search Spam Policies.
+- The content MUST provide high unique value and demonstrate E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness).
+- Do NOT generate clickbait, deceptive, or low-quality thin content. 
+- Ensure the content is safe for all audiences (no prohibited content, violence, or profanity).
+
 You should draw loose inspiration from the following recent jobs posted on our platform, but DO NOT just list the jobs. Instead, write about industry trends, career advice, or the future of work related to these roles.
 
 Context Jobs:
