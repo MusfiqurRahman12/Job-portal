@@ -39,6 +39,11 @@ func CategorizeJob(title string, tags []string, sourceCategory string) string {
 		return "AI & Machine Learning"
 	}
 
+	// Web3 & Blockchain
+	if contains("blockchain") || contains("solidity") || contains("web3") || contains("ethereum") || contains("smart contract") || contains("crypto ") || contains("cryptocurrency") || contains("decentralized") {
+		return "Web3 & Blockchain"
+	}
+
 	// 4. DevOps / Cloud Engineering
 	if contains("devops") || contains("sre") || contains("infrastructure") || contains("sysadmin") || contains("kubernetes") || contains("docker") || contains("terraform") || contains("cloud engineer") || contains("aws") || contains("azure") || contains("gcp") || contains("network engineer") {
 		return "Cloud & DevOps"
@@ -49,8 +54,13 @@ func CategorizeJob(title string, tags []string, sourceCategory string) string {
 		return "Mobile Development"
 	}
 
-	// 6. Data Science / Analytics / Data Eng
-	if contains("data scientist") || contains("data science") || contains("data analyst") || contains("data engineer") || contains("analytics") || contains("database") || contains("sql") || contains("bi engineer") {
+	// Data Engineering
+	if contains("data engineer") || contains("etl") || contains("spark") || contains("hadoop") || contains("dbt") || contains("snowflake") || contains("data pipeline") || contains("airflow") || contains("kafka") {
+		return "Data Engineering"
+	}
+
+	// 6. Data Science / Analytics
+	if contains("data scientist") || contains("data science") || contains("data analyst") || contains("analytics") || contains("database") || contains("sql") || contains("bi engineer") {
 		return "Data Science & Analytics"
 	}
 

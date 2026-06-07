@@ -178,6 +178,34 @@ func (db *DB) GetFilteredJobs(limit, offset int, category, remoteType, search st
 	return jobs, nil
 }
 
+// GetRecentJobsForContext returns a small set of the most recently posted active jobs to be used as context for AI article generation.
+func (db *DB) GetRecentJobsForContext(limit int) ([]shared.Job, error) {
+	query := `
+		SELECT title, company, category, tags
+		FROM jobs
+		WHERE is_active = TRUE AND expires_at > $1
+		ORDER BY posted_at DESC
+		LIMIT $2
+	`
+	rows, err := db.conn.Query(query, time.Now(), limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var jobs []shared.Job
+	for rows.Next() {
+		var j shared.Job
+		// We only need title, company, category, and tags for context, so we can ignore the rest
+		err := rows.Scan(&j.Title, &j.Company, &j.Category, pq.Array(&j.Tags))
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, j)
+	}
+	return jobs, nil
+}
+
 // GetJobCount returns the count of active non-expired jobs
 func (db *DB) GetJobCount() (int, error) {
 	var count int
@@ -499,4 +527,41 @@ func (db *DB) UpdateOutreachStatus(id int64, status string) error {
 	_, err := db.conn.Exec(query, status, id)
 	return err
 }
+
+// CreateScraperRun initializes a log entry for a scraper run
+func (db *DB) CreateScraperRun(runID string, runNumber int) error {
+	query := `
+		INSERT INTO scraper_runs (run_id, run_number, status, started_at)
+		VALUES ($1, $2, 'running', CURRENT_TIMESTAMP)
+		ON CONFLICT (run_id) DO NOTHING
+	`
+	_, err := db.conn.Exec(query, runID, runNumber)
+	return err
+}
+
+// UpdateScraperRun updates the final counts and status of a scraper run
+func (db *DB) UpdateScraperRun(runID string, jobsAdded, articlesAdded int, status, errMsg string) error {
+	query := `
+		UPDATE scraper_runs
+		SET jobs_added = $1,
+		    articles_added = $2,
+		    status = $3,
+		    error_message = $4,
+		    completed_at = CURRENT_TIMESTAMP
+		WHERE run_id = $5
+	`
+	_, err := db.conn.Exec(query, jobsAdded, articlesAdded, status, errMsg, runID)
+	return err
+}
+
+// GetNextLocalRunNumber returns the next run number for local executions
+func (db *DB) GetNextLocalRunNumber() (int, error) {
+	var maxNum int
+	err := db.conn.QueryRow("SELECT COALESCE(MAX(run_number), 0) FROM scraper_runs").Scan(&maxNum)
+	if err != nil {
+		return 1, err
+	}
+	return maxNum + 1, nil
+}
+
 

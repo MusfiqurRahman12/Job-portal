@@ -335,7 +335,13 @@ export default async function JobDetailPage({ params }: Props) {
 function formatMarkdown(text: string) {
   if (!text) return "";
 
-  let html = text
+  // Extract and style the AI Insights section specially if it exists
+  let html = text.replace(
+    /## ✨ AI Insights & Summary\s+([\s\S]*?)(?=\n## |\n# |$)/g,
+    '<div class="glass-card p-6 border-l-4 border-[#8b5cf6] bg-[rgba(139,92,246,0.08)] mb-8 rounded-r-xl"><h2 class="text-[#a78bfa] text-xl font-bold mb-3 mt-0 flex items-center gap-2">✨ AI Insights & Summary</h2><div class="text-[#cbd5e1] m-0 leading-relaxed">$1</div></div>'
+  );
+
+  html = html
     .replace(/^### (.*$)/gim, "<h3>$1</h3>")
     .replace(/^## (.*$)/gim, "<h2>$1</h2>")
     .replace(/^# (.*$)/gim, "<h1>$1</h1>")

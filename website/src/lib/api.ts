@@ -192,3 +192,91 @@ export function slugify(text: string): string {
     .replace(/-+$/, "");           // Trim - from end of text
 }
 
+export interface CategoryStyle {
+  icon: string;
+  color: string;
+}
+
+export function getCategoryStyle(name: string): CategoryStyle {
+  const PREDEFINED: Record<string, CategoryStyle> = {
+    "Frontend Development": { icon: "🎨", color: "#ec4899" },
+    "Backend Development": { icon: "⚙️", color: "#8b5cf6" },
+    "Fullstack Development": { icon: "⚡", color: "#f59e0b" },
+    "Cloud & DevOps": { icon: "☁️", color: "#22d3ee" },
+    "Cybersecurity": { icon: "🛡️", color: "#dc2626" },
+    "AI & Machine Learning": { icon: "🤖", color: "#6366f1" },
+    "Web3 & Blockchain": { icon: "🪙", color: "#fbbf24" },
+    "Mobile Development": { icon: "📱", color: "#10b981" },
+    "Data Science & Analytics": { icon: "🧠", color: "#34d399" },
+    "Data Engineering": { icon: "💾", color: "#06b6d4" },
+    "QA & Testing": { icon: "✅", color: "#f97316" },
+    "Product Management": { icon: "🚀", color: "#eab308" },
+    "Design & Creative": { icon: "🎨", color: "#ec4899" },
+    "Marketing & Sales": { icon: "📢", color: "#f59e0b" },
+    "Customer Support": { icon: "🎧", color: "#22d3ee" },
+    "Writing & Content": { icon: "✍️", color: "#8b5cf6" },
+    "HR & Operations": { icon: "👥", color: "#34d399" },
+    "General": { icon: "💼", color: "#94a3b8" }
+  };
+
+  if (PREDEFINED[name]) {
+    return PREDEFINED[name];
+  }
+
+  // Fallback icon matching keywords
+  let icon = "💼";
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes("front") || lowerName.includes("ui")) icon = "🎨";
+  else if (lowerName.includes("back") || lowerName.includes("engine")) icon = "⚙️";
+  else if (lowerName.includes("full")) icon = "⚡";
+  else if (lowerName.includes("devops") || lowerName.includes("cloud") || lowerName.includes("infra")) icon = "☁️";
+  else if (lowerName.includes("security") || lowerName.includes("cyber")) icon = "🛡️";
+  else if (lowerName.includes("ai ") || lowerName.includes("machine") || lowerName.includes("learn") || lowerName.includes("robot")) icon = "🤖";
+  else if (lowerName.includes("crypto") || lowerName.includes("block") || lowerName.includes("web3")) icon = "🪙";
+  else if (lowerName.includes("mobile") || lowerName.includes("ios") || lowerName.includes("android")) icon = "📱";
+  else if (lowerName.includes("data") || lowerName.includes("scientist") || lowerName.includes("science")) icon = "🧠";
+  else if (lowerName.includes("test") || lowerName.includes("qa") || lowerName.includes("quality")) icon = "✅";
+  else if (lowerName.includes("product") || lowerName.includes("project")) icon = "🚀";
+  else if (lowerName.includes("design") || lowerName.includes("creative")) icon = "🎨";
+  else if (lowerName.includes("market") || lowerName.includes("sale") || lowerName.includes("growth")) icon = "📢";
+  else if (lowerName.includes("support") || lowerName.includes("help") || lowerName.includes("custom")) icon = "🎧";
+  else if (lowerName.includes("writ") || lowerName.includes("content")) icon = "✍️";
+  else if (lowerName.includes("hr") || lowerName.includes("people") || lowerName.includes("recruit") || lowerName.includes("oper")) icon = "👥";
+
+  // Dynamic Hex color generation based on HSL hash
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  const s = 0.75; // 75%
+  const l = 0.60; // 60%
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+
+  if (0 <= hue && hue < 60) {
+    r = c; g = x; b = 0;
+  } else if (60 <= hue && hue < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= hue && hue < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= hue && hue < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= hue && hue < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= hue && hue < 360) {
+    r = c; g = 0; b = x;
+  }
+
+  const rHex = Math.round((r + m) * 255).toString(16).padStart(2, '0');
+  const gHex = Math.round((g + m) * 255).toString(16).padStart(2, '0');
+  const bHex = Math.round((b + m) * 255).toString(16).padStart(2, '0');
+
+  return {
+    icon,
+    color: `#${rHex}${gHex}${bHex}`
+  };
+}
+

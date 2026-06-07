@@ -162,7 +162,12 @@ func (ai *AIService) OptimizeJob(job *shared.Job) error {
 Rewrite the following job posting to be highly engaging, well-structured, professional, and SEO-optimized.
 Use bullet points for requirements and responsibilities. Keep the tone warm yet authoritative.
 Preserve all factual details (salary, location, company name, technical requirements) exactly as stated.
-Format with clear sections using markdown:
+
+CRUCIAL INSTRUCTION: You MUST start the markdown output with a dedicated section exactly titled:
+## ✨ AI Insights & Summary
+In this section, write a compelling, unique 3-4 sentence editorial pitch evaluating the role, the company, and why it's a great opportunity based on the context. This must provide unique publisher value.
+
+Then format the rest of the job details with clear sections using markdown:
 - **About the Role** — A compelling 2-3 sentence overview
 - **Responsibilities** — Bullet-pointed key duties
 - **Requirements** — Bullet-pointed must-have qualifications
@@ -319,7 +324,11 @@ func (ai *AIService) OptimizeJobsBatch(jobs []*shared.Job) error {
 	var sb strings.Builder
 	todayStr := time.Now().Format("2006-01-02")
 	sb.WriteString(fmt.Sprintf("You are an expert HR Specialist and recruiter. For each job posting below:\n" +
-		"1. Rewrite the job description into engaging, professional, SEO-optimized markdown with clear sections (About the Role, Responsibilities, Requirements, Benefits, etc. if mentioned). Keep all factual details (salary, location, company name, technical requirements) exactly as stated. Do not invent any new details.\n" +
+		"1. Rewrite the job description into engaging, professional, SEO-optimized markdown with clear sections. " +
+		"CRUCIAL INSTRUCTION: You MUST start the markdown output with a dedicated section exactly titled:\n" +
+		"## ✨ AI Insights & Summary\n" +
+		"In this section, write a compelling, unique 3-4 sentence editorial pitch evaluating the role, the company, and why it's a great opportunity. This must provide unique publisher value.\n" +
+		"Then follow with standard sections (About the Role, Responsibilities, Requirements, Benefits, etc. if mentioned). Keep all factual details exactly as stated. Do not invent any new details.\n" +
 		"2. Extract the application deadline / closing date if mentioned anywhere in the job description or metadata (e.g. 'apply by June 30', 'closing date: 2026-06-30', 'deadline: 30 June'). If relative dates are mentioned (e.g., 'applications close in 2 weeks'), calculate it relative to today's date: %s.\n\n"+
 		"Respond with a JSON array of objects, one per job, in the same order. Each object must have these exact keys:\n"+
 		"- \"description\": (string) the rewritten job description\n"+
@@ -482,4 +491,114 @@ func (ai *AIService) OptimizeNewsBatch(articles []*shared.News) error {
 	}
 
 	return nil
+}
+
+// GeneratedArticle holds the raw JSON response from Gemini for a generated article
+type GeneratedArticle struct {
+	Title        string `json:"title"`
+	Category     string `json:"category"`
+	Excerpt      string `json:"excerpt"`
+	Content      string `json:"content"`
+	ImageKeyword string `json:"image_keyword"`
+}
+
+// GenerateOriginalArticles creates completely original articles using Gemini, inspired by recent job context
+func (ai *AIService) GenerateOriginalArticles(jobsContext []shared.Job, count int) ([]shared.News, error) {
+	if len(ai.apiKeys) == 0 {
+		return nil, fmt.Errorf("no AI keys configured")
+	}
+
+	log.Printf("[AI] Generating %d original articles based on %d recent jobs context...", count, len(jobsContext))
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf(`You are an expert tech, career, and remote-work blogger.
+Your task is to write exactly %d highly engaging, completely original articles. 
+Write in a "story mode" and human-like tone designed to attract readers and build SEO authority.
+You should draw loose inspiration from the following recent jobs posted on our platform, but DO NOT just list the jobs. Instead, write about industry trends, career advice, or the future of work related to these roles.
+
+Context Jobs:
+`, count))
+
+	for _, j := range jobsContext {
+		sb.WriteString(fmt.Sprintf("- %s at %s (%s)\n", j.Title, j.Company, j.Category))
+	}
+
+	sb.WriteString(`
+Classify each article into one of: Remote Work, Tech, Career, Productivity, Future of Work.
+Generate a highly specific, one or two-word "image_keyword" that visually represents the article (e.g., "developer,office", "laptop,coffee", "interview"). Avoid spaces.
+
+You MUST respond in valid JSON format as an array of objects matching this schema:
+[
+  {
+    "title": "An SEO-friendly, catchy article title",
+    "category": "One of the 5 categories listed above",
+    "excerpt": "Compelling 1-2 sentence hook summary",
+    "content": "Full rewritten article content in markdown format (use H2, bullet points, bolding)",
+    "image_keyword": "keyword for stock image search"
+  }
+]
+Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JSON array.`)
+
+	genConfig := map[string]interface{}{
+		"temperature":      0.8, // Slightly higher for creativity
+		"responseMimeType": "application/json",
+	}
+
+	body, err := ai.callGemini(sb.String(), genConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode gemini response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("empty response from gemini")
+	}
+
+	rawText := geminiResp.Candidates[0].Content.Parts[0].Text
+	var results []GeneratedArticle
+	if err := json.Unmarshal([]byte(rawText), &results); err != nil {
+		return nil, fmt.Errorf("failed to parse structured AI output as JSON array: %w. Raw: %s", err, rawText)
+	}
+
+	var articles []shared.News
+	for _, res := range results {
+		if res.Title == "" || res.Content == "" {
+			continue // Skip invalid items
+		}
+		
+		art := shared.News{
+			Title:       res.Title,
+			Category:    res.Category,
+			Excerpt:     res.Excerpt,
+			Content:     res.Content,
+			Author:      "FutureTalent Editorial",
+			PublishedAt: time.Now(),
+		}
+		art.GenerateSlug()
+		
+		// Assign dynamic image based on keyword
+		if res.ImageKeyword != "" {
+			art.AssignDynamicImage(res.ImageKeyword)
+		} else {
+			art.AssignFallbackImage()
+		}
+		
+		articles = append(articles, art)
+		log.Printf("[AI] Generated Article: %s [%s]", art.Title, art.Category)
+	}
+
+	return articles, nil
 }

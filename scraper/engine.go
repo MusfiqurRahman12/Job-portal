@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"job-portal-crawler/shared"
 	"log"
+	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // minRawDescriptionLength is the minimum character count a scraped description
@@ -55,6 +58,8 @@ type Engine struct {
 	newsScrapers []NewsScraper
 	db           *DB
 	aiService    *AIService
+	jobsAdded    int64
+	newsAdded    int64
 }
 
 func NewEngine(db *DB, aiService *AIService) *Engine {
@@ -63,8 +68,11 @@ func NewEngine(db *DB, aiService *AIService) *Engine {
 		newsScrapers: []NewsScraper{},
 		db:           db,
 		aiService:    aiService,
+		jobsAdded:    0,
+		newsAdded:    0,
 	}
 }
+
 
 func (e *Engine) AddScraper(s Scraper) {
 	e.scrapers = append(e.scrapers, s)
@@ -75,6 +83,42 @@ func (e *Engine) AddNewsScraper(ns NewsScraper) {
 }
 
 func (e *Engine) Run() {
+	runID := os.Getenv("GITHUB_RUN_ID")
+	runNumberStr := os.Getenv("GITHUB_RUN_NUMBER")
+
+	if runID == "" {
+		runID = fmt.Sprintf("local-%d", time.Now().Unix())
+	}
+
+	var runNumber int
+	if runNumberStr != "" {
+		fmt.Sscanf(runNumberStr, "%d", &runNumber)
+	} else {
+		var err error
+		runNumber, err = e.db.GetNextLocalRunNumber()
+		if err != nil {
+			log.Printf("Warning: failed to get next local run number: %v", err)
+			runNumber = 1
+		}
+	}
+
+	// Create run log in database
+	err := e.db.CreateScraperRun(runID, runNumber)
+	if err != nil {
+		log.Printf("Error creating scraper run in DB: %v", err)
+	}
+
+	status := "success"
+	errMsg := ""
+	defer func() {
+		if r := recover(); r != nil {
+			status = "failed"
+			errMsg = fmt.Sprintf("Panic: %v", r)
+			_ = e.db.UpdateScraperRun(runID, int(atomic.LoadInt64(&e.jobsAdded)), int(atomic.LoadInt64(&e.newsAdded)), status, errMsg)
+			panic(r)
+		}
+	}()
+
 	var wg sync.WaitGroup
 	jobChan := make(chan shared.Job, 200)
 	newsChan := make(chan shared.News, 100)
@@ -193,6 +237,15 @@ func (e *Engine) Run() {
 
 	// Wait for both processing pipelines to complete
 	processingWg.Wait()
+
+	// Run automated article generation pipeline
+	e.GenerateAndSaveDailyArticles(4)
+
+	// Update the scraper run log in the DB
+	err = e.db.UpdateScraperRun(runID, int(atomic.LoadInt64(&e.jobsAdded)), int(atomic.LoadInt64(&e.newsAdded)), status, errMsg)
+	if err != nil {
+		log.Printf("Error updating scraper run in DB: %v", err)
+	}
 }
 
 func (e *Engine) processJobBatch(jobs []*shared.Job) {
@@ -223,6 +276,7 @@ func (e *Engine) processJobBatch(jobs []*shared.Job) {
 			log.Printf("Error saving job from %s: %v", j.Source, err)
 			continue
 		}
+		atomic.AddInt64(&e.jobsAdded, 1)
 
 		log.Printf("✅ Saved job: [%s] at %s from %s", j.Title, j.Company, j.Source)
 
@@ -256,6 +310,41 @@ func (e *Engine) processNewsBatch(articles []*shared.News) {
 			log.Printf("Error saving news article %s: %v", art.Title, err)
 			continue
 		}
+		atomic.AddInt64(&e.newsAdded, 1)
 		log.Printf("Saved news article: [%s] Category: %s from %s", art.Title, art.Category, art.Author)
+	}
+}
+
+// GenerateAndSaveDailyArticles fetches context from recent jobs and writes totally unique articles via AI
+func (e *Engine) GenerateAndSaveDailyArticles(count int) {
+	if e.aiService == nil {
+		return
+	}
+
+	log.Printf("Starting autonomous article generation pipeline (%d articles)...", count)
+	
+	// 1. Get recent jobs as context
+	jobsCtx, err := e.db.GetRecentJobsForContext(10) // fetch up to 10 jobs for context
+	if err != nil {
+		log.Printf("Error fetching job context for articles: %v", err)
+		// Even if context fails, we can still generate generic articles
+	}
+
+	// 2. Generate articles
+	articles, err := e.aiService.GenerateOriginalArticles(jobsCtx, count)
+	if err != nil {
+		log.Printf("Error generating original AI articles: %v", err)
+		return
+	}
+
+	// 3. Save to database
+	for _, art := range articles {
+		err := e.db.SaveNews(art)
+		if err != nil {
+			log.Printf("Error saving AI-generated article %s: %v", art.Title, err)
+			continue
+		}
+		atomic.AddInt64(&e.newsAdded, 1)
+		log.Printf("✅ Published Original AI Article: [%s] Category: %s", art.Title, art.Category)
 	}
 }

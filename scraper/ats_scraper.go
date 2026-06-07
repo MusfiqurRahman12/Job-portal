@@ -46,6 +46,9 @@ var customCareersPages = []map[string]string{
 	{"name": "Fly.io", "url": "https://fly.io/jobs/"},
 	{"name": "Railway", "url": "https://railway.app/careers"},
 	{"name": "Supabase", "url": "https://supabase.com/careers"},
+	{"name": "Brain Station 23", "url": "https://brainstation-23.com/career/"},
+	{"name": "SELISE", "url": "https://selise.ch/career/"},
+	{"name": "Leapfrog Technology", "url": "https://www.lftechnology.com/careers"},
 }
 
 type discoveredBoards struct {

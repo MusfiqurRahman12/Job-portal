@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { fetchJobs, fetchCategories, getHoursLeft, Job, slugify } from "@/lib/api";
+import { fetchJobs, fetchCategories, getHoursLeft, Job, slugify, getCategoryStyle } from "@/lib/api";
 import Link from "next/link";
 import SearchForm from "@/components/SearchForm";
 import { Metadata } from "next";
@@ -34,25 +34,6 @@ function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
   }
   return <span className={cls}>{label}</span>;
 }
-
-const CATEGORY_COLORS: Record<string, string> = {
-  "Frontend Development": "#ec4899",
-  "Backend Development": "#8b5cf6",
-  "Fullstack Development": "#f59e0b",
-  "Cloud & DevOps": "#22d3ee",
-  "Cybersecurity": "#dc2626",
-  "AI & Machine Learning": "#6366f1",
-  "Mobile Development": "#10b981",
-  "Data Science & Analytics": "#34d399",
-  "QA & Testing": "#f97316",
-  "Product Management": "#eab308",
-  "Design & Creative": "#ec4899",
-  "Marketing & Sales": "#f59e0b",
-  "Customer Support": "#22d3ee",
-  "Writing & Content": "#8b5cf6",
-  "HR & Operations": "#34d399",
-  "General": "#94a3b8"
-};
 
 const WORKPLACE_BADGES: Record<string, { label: string; icon: string; color: string }> = {
   remote: { label: "Remote", icon: "🏠", color: "#34d399" },
@@ -187,7 +168,7 @@ async function JobsContent({ searchParams }: PageProps) {
                 <div className="space-y-4">
                   {jobs.map((job) => {
                     const hoursLeft = job.expires_at ? getHoursLeft(job.expires_at) : 24;
-                    const color = CATEGORY_COLORS[job.category] || CATEGORY_COLORS["General"];
+                    const color = getCategoryStyle(job.category).color || "#94a3b8";
                     const company_logo = job.company_logo || job.company[0];
                     
                     return (

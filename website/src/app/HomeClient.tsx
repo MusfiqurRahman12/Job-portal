@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount, slugify } from "@/lib/api";
+import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount, slugify, getCategoryStyle } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import AdUnit from "@/components/AdUnit";
 
@@ -15,24 +15,6 @@ gsap.registerPlugin(ScrollTrigger);
    MOCK DATA — Replace with API calls to your Go backend
    ═══════════════════════════════════════════════════════ */
 
-const CATEGORY_DETAILS: Record<string, { icon: string; color: string }> = {
-  "Frontend Development": { icon: "🎨", color: "#ec4899" },
-  "Backend Development": { icon: "⚙️", color: "#8b5cf6" },
-  "Fullstack Development": { icon: "⚡", color: "#f59e0b" },
-  "Cloud & DevOps": { icon: "☁️", color: "#22d3ee" },
-  "Cybersecurity": { icon: "🛡️", color: "#dc2626" },
-  "AI & Machine Learning": { icon: "🤖", color: "#6366f1" },
-  "Mobile Development": { icon: "📱", color: "#10b981" },
-  "Data Science & Analytics": { icon: "🧠", color: "#34d399" },
-  "QA & Testing": { icon: "✅", color: "#f97316" },
-  "Product Management": { icon: "🚀", color: "#eab308" },
-  "Design & Creative": { icon: "🎨", color: "#ec4899" },
-  "Marketing & Sales": { icon: "📢", color: "#f59e0b" },
-  "Customer Support": { icon: "🎧", color: "#22d3ee" },
-  "Writing & Content": { icon: "✍️", color: "#8b5cf6" },
-  "HR & Operations": { icon: "👥", color: "#34d399" },
-  "General": { icon: "💼", color: "#94a3b8" }
-};
 
 const CATEGORIES = [
   { name: "Frontend Development", icon: "🎨", count: 1205, color: "#ec4899" },
@@ -41,8 +23,10 @@ const CATEGORIES = [
   { name: "Cloud & DevOps", icon: "☁️", count: 423, color: "#22d3ee" },
   { name: "Cybersecurity", icon: "🛡️", count: 320, color: "#dc2626" },
   { name: "AI & Machine Learning", icon: "🤖", count: 450, color: "#6366f1" },
+  { name: "Web3 & Blockchain", icon: "🪙", count: 180, color: "#fbbf24" },
   { name: "Mobile Development", icon: "📱", count: 620, color: "#10b981" },
   { name: "Data Science & Analytics", icon: "🧠", count: 567, color: "#34d399" },
+  { name: "Data Engineering", icon: "💾", count: 290, color: "#06b6d4" },
   { name: "QA & Testing", icon: "✅", count: 210, color: "#f97316" },
   { name: "Product Management", icon: "🚀", count: 734, color: "#eab308" },
   { name: "Design & Creative", icon: "🎨", count: 891, color: "#ec4899" },
@@ -633,12 +617,15 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {(apiCategories.length > 0
-              ? apiCategories.map(cat => ({
-                  name: cat.name,
-                  icon: CATEGORY_DETAILS[cat.name]?.icon || "💼",
-                  count: cat.count,
-                  color: CATEGORY_DETAILS[cat.name]?.color || "#94a3b8"
-                }))
+              ? apiCategories.map(cat => {
+                  const style = getCategoryStyle(cat.name);
+                  return {
+                    name: cat.name,
+                    icon: style.icon,
+                    count: cat.count,
+                    color: style.color
+                  };
+                })
               : CATEGORIES
             ).map((cat) => {
               return (
@@ -699,7 +686,7 @@ export default function Home() {
               (j) => activeFilter === "All" || j.category === activeFilter
             )).map((job: any) => {
               const hoursLeft = job.expires_at ? getHoursLeft(job.expires_at) : job.hoursLeft;
-              const color = job.color || CATEGORY_DETAILS[job.category]?.color || "#8b5cf6";
+              const color = job.color || getCategoryStyle(job.category).color || "#8b5cf6";
               const title = job.title;
               const company = job.company;
               const company_logo = job.company_logo || company[0];

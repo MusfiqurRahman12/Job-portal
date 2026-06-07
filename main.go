@@ -78,10 +78,12 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine.AddScraper(scraper.NewFindWorkScraper())   // FindWork.dev (JSON API — remote + hybrid + onsite)
 	engine.AddScraper(scraper.NewJobicyScraper())     // Jobicy (JSON API — remote)
 	engine.AddScraper(scraper.NewAtsScraper(aiService)) // New Search-based direct company website scraper
+	engine.AddScraper(scraper.NewBluedoorScraper())     // Bluedoor Job Postings API scraper
 
 	
 	// New standard RSS Job boards
 	engine.AddScraper(scraper.NewRSSJobScraper("Himalayas", "https://himalayas.app/jobs/rss"))
+	engine.AddScraper(scraper.NewRSSJobScraper("Hasjob", "https://hasjob.co/feed"))
 	engine.AddScraper(scraper.NewRSSJobScraper("Jobspresso", "https://jobspresso.co/feed/?post_type=job_listing"))
 	engine.AddScraper(scraper.NewRSSJobScraper("CryptoJobsList", "https://cryptojobslist.com/jobs.rss"))
 	

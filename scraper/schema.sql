@@ -90,3 +90,17 @@ CREATE TABLE IF NOT EXISTS outreach_queue (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Scraper runs/execution logging table
+CREATE TABLE IF NOT EXISTS scraper_runs (
+    id SERIAL PRIMARY KEY,
+    run_id TEXT UNIQUE NOT NULL,
+    run_number INTEGER,
+    jobs_added INTEGER DEFAULT 0,
+    articles_added INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'running',
+    error_message TEXT DEFAULT '',
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+);
+
