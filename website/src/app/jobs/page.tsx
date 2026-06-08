@@ -91,6 +91,39 @@ async function JobsContent({ searchParams }: PageProps) {
     return `/jobs?${params.toString()}`;
   };
 
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push("...");
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
+
   return (
     <>
       <nav className="navbar scrolled">
@@ -249,7 +282,7 @@ async function JobsContent({ searchParams }: PageProps) {
                 </div>
 
                 {/* PAGINATION CONTROLS */}
-                {Math.ceil(totalCount / PAGE_SIZE) > 1 && (
+                {totalPages > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/5 mt-8">
                     {currentPage === 1 ? (
                       <span className="px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 opacity-40 select-none">
@@ -265,22 +298,32 @@ async function JobsContent({ searchParams }: PageProps) {
                     )}
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      {Array.from({ length: Math.ceil(totalCount / PAGE_SIZE) }, (_, i) => i + 1).map((page) => (
-                        <Link
-                          key={page}
-                          href={getPageUrl(page)}
-                          className={`w-10 h-10 rounded-xl text-sm font-bold flex items-center justify-center transition-all ${
-                            currentPage === page
-                              ? "bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/30 border border-[#8b5cf6]"
-                              : "border border-white/10 hover:bg-white/5 text-[#94a3b8]"
-                          }`}
-                        >
-                          {page}
-                        </Link>
-                      ))}
+                      {getPageNumbers().map((page, idx) => {
+                        if (page === "...") {
+                          return (
+                            <span key={`ellipsis-${idx}`} className="px-3 text-gray-500 font-bold select-none">
+                              ...
+                            </span>
+                          );
+                        }
+                        const pNum = page as number;
+                        return (
+                          <Link
+                            key={pNum}
+                            href={getPageUrl(pNum)}
+                            className={`w-10 h-10 rounded-xl text-sm font-bold flex items-center justify-center transition-all ${
+                              currentPage === pNum
+                                ? "bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/30 border border-[#8b5cf6]"
+                                : "border border-white/10 hover:bg-white/5 text-[#94a3b8]"
+                            }`}
+                          >
+                            {pNum}
+                          </Link>
+                        );
+                      })}
                     </div>
 
-                    {currentPage === Math.ceil(totalCount / PAGE_SIZE) ? (
+                    {currentPage === totalPages ? (
                       <span className="px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 opacity-40 select-none">
                         Next →
                       </span>
