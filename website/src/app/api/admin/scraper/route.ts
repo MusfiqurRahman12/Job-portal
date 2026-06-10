@@ -5,9 +5,9 @@ const GITHUB_REPO = 'MusfiqurRahman12/Job-portal';
 const WORKFLOW_ID = 'scrape.yml'; // Use the filename of the workflow
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey as string);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function GET() {
   const token = process.env.GITHUB_PAT;

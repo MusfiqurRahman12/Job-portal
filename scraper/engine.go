@@ -198,7 +198,7 @@ func (e *Engine) Run() {
 			j := job
 			batch = append(batch, &j)
 
-			if len(batch) >= 10 {
+			if len(batch) >= 5 {
 				e.processJobBatch(batch)
 				batch = nil
 			}
