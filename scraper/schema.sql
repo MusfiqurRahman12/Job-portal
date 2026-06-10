@@ -104,3 +104,14 @@ CREATE TABLE IF NOT EXISTS scraper_runs (
     completed_at TIMESTAMP
 );
 
+-- View for company profiles (unique companies with active job counts)
+CREATE OR REPLACE VIEW company_profiles AS
+SELECT 
+    company as name,
+    MAX(company_logo) as logo,
+    COUNT(*)::int as open_jobs_count
+FROM jobs
+WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP
+GROUP BY company;
+
+

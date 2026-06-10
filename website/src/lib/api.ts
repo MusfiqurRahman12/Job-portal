@@ -280,3 +280,47 @@ export function getCategoryStyle(name: string): CategoryStyle {
   };
 }
 
+export interface CompanyProfile {
+  name: string;
+  logo: string;
+  open_jobs_count: number;
+}
+
+export async function fetchCompanyProfiles(): Promise<CompanyProfile[]> {
+  const { data, error } = await supabase
+    .from("company_profiles")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching company profiles from Supabase:", error);
+    return [];
+  }
+
+  return (data as CompanyProfile[]) || [];
+}
+
+export async function fetchJobsByCompany(companyName: string): Promise<Job[]> {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("*")
+    .eq("company", companyName)
+    .eq("is_active", true)
+    .gt("expires_at", new Date().toISOString())
+    .order("posted_at", { ascending: false });
+
+  if (error) {
+    console.error(`Error fetching jobs for company ${companyName}:`, error);
+    return [];
+  }
+
+  return (data as Job[]) || [];
+}
+
+export async function fetchCompanyBySlug(slug: string): Promise<CompanyProfile | null> {
+  const profiles = await fetchCompanyProfiles();
+  const profile = profiles.find((p) => slugify(p.name) === slug);
+  return profile || null;
+}
+
+

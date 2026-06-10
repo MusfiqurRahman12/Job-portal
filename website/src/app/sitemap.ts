@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { fetchJobs, fetchNews, slugify } from "@/lib/api";
+import { fetchJobs, fetchNews, slugify, fetchCompanyProfiles } from "@/lib/api";
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +35,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   } catch (err) {
     console.error("Failed to generate sitemap URLs for news:", err);
+  }
+
+  let companyUrls: MetadataRoute.Sitemap = [];
+  try {
+    const companies = await fetchCompanyProfiles();
+    companyUrls = companies.map((company) => ({
+      url: `${baseUrl}/companies/${slugify(company.name)}`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.7,
+    }));
+  } catch (err) {
+    console.error("Failed to generate sitemap URLs for companies:", err);
   }
 
   return [
@@ -80,7 +93,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/companies`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
     ...jobUrls,
     ...newsUrls,
+    ...companyUrls,
   ];
 }

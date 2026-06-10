@@ -128,11 +128,14 @@ async function JobsContent({ searchParams }: PageProps) {
     <>
       <nav className="navbar scrolled">
         <div className="navbar-inner">
-          <a href="/" className="nav-logo">Future<span>Talent</span></a>
+          <Link href="/" className="nav-logo">
+            Future<span>Talent</span>
+          </Link>
           <div className="nav-links">
-            <a href="/jobs" className="nav-link active">Browse Jobs</a>
-            <a href="/#categories" className="nav-link">Categories</a>
-            <a href="/blog" className="nav-link">Blog</a>
+            <Link href="/#categories" className="nav-link">Categories</Link>
+            <Link href="/companies" className="nav-link">Companies</Link>
+            <Link href="/blog" className="nav-link">Blog</Link>
+            <Link href="/jobs" className="nav-cta-neon">Browse Jobs</Link>
           </div>
         </div>
       </nav>

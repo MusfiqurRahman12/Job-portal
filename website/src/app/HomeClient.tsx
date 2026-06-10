@@ -483,7 +483,7 @@ export default function Home() {
           </a>
           <div className="nav-links">
             <a href="#categories" className="nav-link">Categories</a>
-            <Link href="/jobs" className="nav-link">Companies</Link>
+            <Link href="/companies" className="nav-link">Companies</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
             <Link href="/jobs" className="nav-cta-neon">Browse Jobs</Link>
           </div>
@@ -891,7 +891,7 @@ export default function Home() {
             <div>
               <div className="footer-heading">Job Seekers</div>
               <Link href="/jobs" className="footer-link">Browse Jobs</Link>
-              <Link href="/jobs" className="footer-link">Companies</Link>
+              <Link href="/companies" className="footer-link">Companies</Link>
               <Link href="/jobs" className="footer-link">Salary Guide</Link>
               <Link href="/blog" className="footer-link">Career Blog</Link>
             </div>
