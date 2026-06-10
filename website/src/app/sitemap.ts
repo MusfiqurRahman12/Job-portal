@@ -1,6 +1,8 @@
 import { MetadataRoute } from "next";
 import { fetchJobs, fetchNews, slugify } from "@/lib/api";
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Use public URL if available, fallback to default production URL
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
