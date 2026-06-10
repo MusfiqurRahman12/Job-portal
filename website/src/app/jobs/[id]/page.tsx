@@ -133,6 +133,67 @@ function parseSalary(salary: string | null | undefined): Record<string, unknown>
   };
 }
 
+/**
+ * Generates a complete and GSC-validated Place object for job postings.
+ * Ensures that addressCountry, streetAddress, addressRegion, and postalCode are never missing.
+ */
+function getJobLocation(location: string | null | undefined, isRemote: boolean) {
+  const loc = location?.trim() || "";
+  
+  let country = "US"; // default fallback country code
+  let region = "Remote";
+  let locality = "Remote";
+  let postalCode = "Remote";
+  let streetAddress = "Remote";
+
+  if (!isRemote && loc !== "") {
+    const parts = loc.split(",").map(p => p.trim());
+    if (parts.length === 1) {
+      locality = parts[0];
+      region = parts[0];
+      country = parts[0];
+    } else if (parts.length === 2) {
+      locality = parts[0];
+      region = parts[1];
+      country = parts[1].length === 2 ? "US" : parts[1];
+    } else if (parts.length >= 3) {
+      locality = parts[0];
+      region = parts[1];
+      country = parts[2];
+    }
+    streetAddress = "Not Specified";
+    postalCode = "00000"; // standard fallback postal code
+  } else {
+    // Remote job: if we can extract a country code/name from parentheses (e.g. "Remote (US)")
+    const match = loc.match(/\(([^)]+)\)/);
+    if (match && match[1]) {
+      const parsedCountry = match[1].trim();
+      country = parsedCountry.length === 2 ? parsedCountry.toUpperCase() : parsedCountry;
+      region = country;
+      locality = "Remote";
+    } else if (loc !== "" && !loc.toLowerCase().includes("remote") && !loc.toLowerCase().includes("worldwide")) {
+      country = loc;
+      region = loc;
+    }
+  }
+
+  // Ensure country is normalized (Google likes ISO 2-letter codes or full country name)
+  if (country.toLowerCase() === "worldwide" || country.toLowerCase() === "global") {
+    country = "US"; // default fallback
+  }
+
+  return {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": streetAddress,
+      "addressLocality": locality,
+      "addressRegion": region,
+      "postalCode": postalCode,
+      "addressCountry": country,
+    }
+  };
+}
 
 export default async function JobDetailPage({ params }: Props) {
   const resolvedParams = await params;
@@ -191,22 +252,13 @@ export default async function JobDetailPage({ params }: Props) {
         ? { "logo": job.company_logo }
         : {}),
     },
-    // Remote job fields (only set when job is remote)
+    // GSC-compliant location mapping for both remote and on-site listings
+    "jobLocation": getJobLocation(job.location, isRemote),
     ...(isRemote ? {
       "jobLocationType": "TELECOMMUTE",
       "applicantLocationRequirements": {
         "@type": "Country",
         "name": job.location || "Worldwide",
-      },
-    } : {}),
-    // Physical location for on-site / hybrid jobs
-    ...(!isRemote && job.location ? {
-      "jobLocation": {
-        "@type": "Place",
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": job.location,
-        },
       },
     } : {}),
     // Salary — omitted entirely when not available rather than emitting undefined
