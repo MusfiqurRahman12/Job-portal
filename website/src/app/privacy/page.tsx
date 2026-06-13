@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Privacy Policy | FutureTalent",
   description: "Learn how FutureTalent collects, uses, and protects your personal data. Read our privacy policy and cookie policy.",
   alternates: {
-    canonical: "https://www.futuretalent.online/privacy",
+    canonical: "/privacy",
   },
 };
 

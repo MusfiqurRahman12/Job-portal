@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Browse All Jobs — Remote, Hybrid & On-Site | FutureTalent",
   description: "Browse hundreds of active remote, hybrid, and on-site jobs in Software Engineering, Design, Marketing, Product Management, and DevOps. Filter by category, location, and skills.",
   alternates: {
-    canonical: "https://www.futuretalent.online/jobs",
+    canonical: "/jobs",
   },
 };
 

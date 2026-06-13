@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const article = await fetchNewsBySlug(slug);
     const title = `${article.title} | FutureTalent Blog`;
     const description = article.excerpt || `Read the full article: ${article.title} on FutureTalent.`;
-    const canonicalUrl = `${baseUrl}/blog/${slug}`;
+    const canonicalUrl = `/blog/${slug}`;
 
     return {
       title,
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: "Blog Article | FutureTalent",
       alternates: {
-        canonical: `${baseUrl}/blog/${slug}`,
+        canonical: `/blog/${slug}`,
       },
     };
   }

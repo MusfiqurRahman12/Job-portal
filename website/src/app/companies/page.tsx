@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "Explore top companies hiring remote, hybrid, and on-site workers worldwide. Use our interactive 3D globe to discover open job postings by brand and location.",
   alternates: {
-    canonical: "https://www.futuretalent.online/companies",
+    canonical: "/companies",
   },
   openGraph: {
     title: "Top Global & Remote Companies Hiring Now | FutureTalent",

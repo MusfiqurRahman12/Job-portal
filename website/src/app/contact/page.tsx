@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     "Have questions about FutureTalent? Want to report a job listing, request a feature, or partner with us? Reach out and we'll get back to you within 24 hours.",
   alternates: {
-    canonical: "https://www.futuretalent.online/contact",
+    canonical: "/contact",
   },
   openGraph: {
     title: "Contact Us — Get in Touch with FutureTalent",

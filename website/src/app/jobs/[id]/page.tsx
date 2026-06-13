@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = `${job.title} at ${job.company} | Remote Jobs`;
     const description = `Apply for ${job.title} at ${job.company} (${job.location}). Category: ${job.category}. Salary: ${job.salary || "Competitive"}.`;
     const slug = slugify(job.title + " " + job.company);
-    const canonicalUrl = `${baseUrl}/jobs/${job.id}-${slug}`;
+    const canonicalUrl = `/jobs/${job.id}-${slug}`;
 
     return {
       title,
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: "Job Details | FutureTalent",
       alternates: {
-        canonical: `${baseUrl}/jobs/${rawId}`,
+        canonical: `/jobs/${rawId}`,
       },
     };
   }

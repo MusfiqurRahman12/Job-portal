@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `Active Jobs at ${company.name} — Remote & Hybrid | FutureTalent`,
     description: `Discover active remote, hybrid, and on-site job opportunities at ${company.name}. Apply directly to open roles. Updated every 24 hours.`,
     alternates: {
-      canonical: `https://www.futuretalent.online/companies/${resolvedParams.slug}`,
+      canonical: `/companies/${resolvedParams.slug}`,
     },
   };
 }
