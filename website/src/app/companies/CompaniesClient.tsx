@@ -9,11 +9,14 @@ import { CompanyProfile, slugify } from "@/lib/api";
 const CompanyGlobe = dynamic(() => import("@/components/CompanyGlobe"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[450px] rounded-3xl bg-[#0d0d18] border border-[#1e1b4b]/50 flex items-center justify-center text-[#64748b] relative">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-2 border-violet-500 border-t-transparent animate-spin"></div>
-        <span className="text-sm tracking-widest uppercase text-xs font-semibold text-violet-400">
-          Loading interactive globe...
+    <div className="w-full h-[650px] rounded-3xl bg-[#0d0d18] border border-[#1e1b4b]/50 flex items-center justify-center text-[#64748b] relative">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 rounded-full border-2 border-violet-500 border-t-transparent animate-spin"></div>
+        <span className="text-xs tracking-[0.2em] uppercase font-semibold text-violet-400">
+          Initializing 3D Globe...
+        </span>
+        <span className="text-[10px] text-[#475569]">
+          Mapping {"companies"} worldwide
         </span>
       </div>
     </div>
@@ -177,8 +180,8 @@ export default function CompaniesClient({ companies }: CompaniesClientProps) {
       </header>
 
       {/* ══════ Globe Section ══════ */}
-      <section className="px-4 md:px-6 pb-12 relative z-10">
-        <div className="max-w-4xl mx-auto">
+      <section className="px-4 md:px-6 pb-16 relative z-10">
+        <div className="max-w-6xl mx-auto">
           <CompanyGlobe
             companies={filteredAndSortedCompanies}
             onSelectCompany={handleSelectCompanyFromGlobe}
