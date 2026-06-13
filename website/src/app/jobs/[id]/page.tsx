@@ -493,6 +493,31 @@ export default async function JobDetailPage({ params }: Props) {
               </div>
             </div>
 
+            {/* Frequently Asked Questions */}
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-bold text-white mb-4">FAQ</h3>
+              <div className="space-y-4 text-xs">
+                <div>
+                  <h4 className="font-semibold text-white mb-1">Is this position remote?</h4>
+                  <p className="text-[#94a3b8] leading-relaxed">
+                    The {job.title} role is a {job.workplace_type || (isRemote ? "remote" : "on-site")} opportunity. The location specified is {job.location || "anywhere"}.
+                  </p>
+                </div>
+                <div className="border-t border-white/5 pt-3">
+                  <h4 className="font-semibold text-white mb-1">What is the salary?</h4>
+                  <p className="text-[#94a3b8] leading-relaxed">
+                    The salary is {job.salary || "not explicitly stated, but is competitive and based on experience"}.
+                  </p>
+                </div>
+                <div className="border-t border-white/5 pt-3">
+                  <h4 className="font-semibold text-white mb-1">How do I apply?</h4>
+                  <p className="text-[#94a3b8] leading-relaxed">
+                    You can apply by clicking the "Apply for this role" button above to submit your application on the hiring website.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <AdUnit slot="2009071234" format="rectangle" style={{ minHeight: "250px" }} />
           </div>
         </div>
