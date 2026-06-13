@@ -43,29 +43,66 @@ function pickVoice(
 ): SpeechSynthesisVoice | undefined {
   if (voicesList.length === 0) return undefined;
 
-  const fragments = gender === "female" ? FEMALE_FRAGMENTS : MALE_FRAGMENTS;
-  const regex = new RegExp(fragments.join("|"), "i");
+  const myFragments = gender === "female" ? FEMALE_FRAGMENTS : MALE_FRAGMENTS;
+  const oppositeFragments = gender === "female" ? MALE_FRAGMENTS : FEMALE_FRAGMENTS;
+  const myRegex = new RegExp(myFragments.join("|"), "i");
+  const oppositeRegex = new RegExp(oppositeFragments.join("|"), "i");
 
+  // Filter to English voices when possible
   const englishVoices = voicesList.filter((v) =>
     v.lang.toLowerCase().startsWith("en")
   );
   const pool = englishVoices.length > 0 ? englishVoices : voicesList;
 
-  // 1. Exact gender word in name (e.g. "Google UK English Male")
-  const exactMatch = pool.find((v) =>
+  // Helper: check if a voice name explicitly belongs to the opposite gender
+  const isOppositeGender = (v: SpeechSynthesisVoice) => {
+    const name = v.name.toLowerCase();
+    // Special case: "female" contains "male" so handle carefully
+    if (gender === "male") {
+      // Reject voices that say "female" in the name
+      if (name.includes("female")) return true;
+      // Check opposite (female) fragments, but skip the word "female" itself (already checked)
+      return oppositeRegex.test(name) && !name.includes("male");
+    } else {
+      // gender === "female": reject voices that say "male" but NOT "female"
+      if (name.includes("male") && !name.includes("female")) return true;
+      return oppositeRegex.test(name);
+    }
+  };
+
+  // Remove voices that clearly belong to the opposite gender
+  const genderFiltered = pool.filter((v) => !isOppositeGender(v));
+
+  // 1. Exact gender word match (e.g. "Google UK English Male")
+  const exactMatch = genderFiltered.find((v) =>
     v.name.toLowerCase().includes(gender)
   );
   if (exactMatch) return exactMatch;
 
-  // 2. Fragment match in name
-  const fragmentMatch = pool.find((v) => regex.test(v.name));
+  // 2. Fragment match (e.g. "Daniel", "Samantha")
+  const fragmentMatch = genderFiltered.find((v) => myRegex.test(v.name));
   if (fragmentMatch) return fragmentMatch;
 
-  // 3. Default browser voice
+  // 3. If we couldn't find a gender-specific voice, try the full unfiltered pool
+  //    but with stronger matching
+  const fullPoolExact = pool.find((v) =>
+    v.name.toLowerCase().includes(gender)
+  );
+  if (fullPoolExact) return fullPoolExact;
+
+  const fullPoolFragment = pool.find((v) => myRegex.test(v.name));
+  if (fullPoolFragment) return fullPoolFragment;
+
+  // 4. Last resort: for male pick the last English voice, for female pick the first
+  //    (browsers tend to list female voices first, male voices later)
+  if (gender === "male" && pool.length > 1) {
+    return pool[pool.length - 1];
+  }
+
+  // 5. Default browser voice or first available
   const defaultVoice = pool.find((v) => v.default);
   if (defaultVoice) return defaultVoice;
 
-  // 4. First English or first available
   return pool[0];
 }
 
@@ -172,8 +209,14 @@ export default function ReadAloudButton({ content }: ReadAloudButtonProps) {
       console.warn("[ReadAloud] No matching voice found – using browser default");
     }
 
-    utterance.rate = 1.0;
-    utterance.pitch = currentGender === "male" ? 0.85 : 1.05;
+    // Use noticeably different pitch and rate for each gender
+    if (currentGender === "male") {
+      utterance.rate = 0.95;
+      utterance.pitch = 0.7;   // Much deeper
+    } else {
+      utterance.rate = 1.0;
+      utterance.pitch = 1.1;   // Slightly higher
+    }
 
     utterance.onend = () => {
       setIsPlaying(false);
