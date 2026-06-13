@@ -208,6 +208,12 @@ export default async function JobDetailPage({ params }: Props) {
     notFound();
   }
 
+  // Return 404 status code if the job is inactive or has expired
+  const isExpired = job.expires_at ? new Date(job.expires_at).getTime() < Date.now() : false;
+  if (!job.is_active || isExpired) {
+    notFound();
+  }
+
   const hoursLeft = getHoursLeft(job.expires_at);
 
   // Parse salary string into Schema.org-compliant numeric structure

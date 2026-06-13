@@ -1,6 +1,7 @@
 import BlogPostClient from "./BlogPostClient";
 import { Metadata } from "next";
 import { fetchNewsBySlug } from "@/lib/api";
+import { notFound } from "next/navigation";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -51,6 +52,10 @@ export default async function Page({ params }: Props) {
     article = await fetchNewsBySlug(slug);
   } catch (err) {
     console.error("Failed to load article on server:", err);
+  }
+
+  if (!article) {
+    notFound();
   }
 
   const jsonLd = article ? {
