@@ -10,12 +10,11 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
 
   try {
     const article = await fetchNewsBySlug(slug);
     const title = `${article.title} | FutureTalent Blog`;
-    const description = article.excerpt || `Read the full article: ${article.title} on FutureTalent.`;
+    const description = article.excerpt || `Read "${article.title}" by ${article.author || "FutureTalent Editors"}. Stay ahead in your career with the latest industry insights, job search tips, and expert guides on FutureTalent!`;
     const canonicalUrl = `/blog/${slug}`;
 
     return {

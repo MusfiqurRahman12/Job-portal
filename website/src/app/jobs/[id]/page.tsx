@@ -13,12 +13,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const rawId = resolvedParams.id;
   const actualId = rawId.split("-")[0];
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
 
   try {
     const job = await fetchJobById(actualId);
-    const title = `${job.title} at ${job.company} | Remote Jobs`;
-    const description = `Apply for ${job.title} at ${job.company} (${job.location}). Category: ${job.category}. Salary: ${job.salary || "Competitive"}.`;
+    
+    // Determine workplace type dynamically
+    const isRemote = job.workplace_type === "remote" || job.remote_type === "worldwide" || job.location?.toLowerCase().includes("remote");
+    const isHybrid = job.workplace_type === "hybrid" || job.location?.toLowerCase().includes("hybrid");
+    
+    let workplaceLabel = "On-site Opportunity";
+    let workplaceDesc = "on-site";
+    if (isRemote) {
+      workplaceLabel = "Remote Opportunity";
+      workplaceDesc = "remote";
+    } else if (isHybrid) {
+      workplaceLabel = "Hybrid Opportunity";
+      workplaceDesc = "hybrid";
+    }
+
+    const title = `${job.title} Job at ${job.company} | ${workplaceLabel} | FutureTalent`;
+    
+    const salaryPart = job.salary && job.salary.trim() !== "" 
+      ? `with a salary of ${job.salary}` 
+      : "with competitive compensation";
+      
+    const description = `Looking for a ${job.title} job? Apply to join ${job.company} for this ${workplaceDesc} opportunity based in ${job.location || "anywhere"}. View details, ${salaryPart}, and apply online today on FutureTalent!`;
+    
     const slug = slugify(job.title + " " + job.company);
     const canonicalUrl = `/jobs/${job.id}-${slug}`;
 
