@@ -175,7 +175,16 @@ function getJobLocation(location: string | null | undefined, isRemote: boolean) 
     } else if (parts.length === 2) {
       locality = parts[0];
       region = parts[1];
-      country = parts[1].length === 2 ? "US" : parts[1];
+      
+      const stateOrCountry = parts[1];
+      const isUSState = /^(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)$/i.test(stateOrCountry);
+      if (isUSState) {
+        country = "US";
+        region = stateOrCountry.toUpperCase();
+      } else {
+        country = stateOrCountry;
+        region = stateOrCountry;
+      }
     } else if (parts.length >= 3) {
       locality = parts[0];
       region = parts[1];
@@ -200,6 +209,10 @@ function getJobLocation(location: string | null | undefined, isRemote: boolean) 
   // Ensure country is normalized (Google likes ISO 2-letter codes or full country name)
   if (country.toLowerCase() === "worldwide" || country.toLowerCase() === "global") {
     country = "US"; // default fallback
+  }
+
+  if (country.length === 2) {
+    country = country.toUpperCase();
   }
 
   return {
