@@ -1,4 +1,4 @@
-import { fetchJobById, getHoursLeft, slugify } from "@/lib/api";
+import { fetchJobById, fetchJobs, getHoursLeft, getCategoryStyle, slugify } from "@/lib/api";
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -215,10 +215,17 @@ function getJobLocation(location: string | null | undefined, isRemote: boolean) 
   };
 }
 
+const WORKPLACE_BADGES: Record<string, { label: string; icon: string; color: string }> = {
+  remote: { label: "Remote", icon: "🏠", color: "#34d399" },
+  hybrid: { label: "Hybrid", icon: "🔄", color: "#f59e0b" },
+  onsite: { label: "On-Site", icon: "🏢", color: "#6366f1" },
+};
+
 export default async function JobDetailPage({ params }: Props) {
   const resolvedParams = await params;
   const rawId = resolvedParams.id;
   const actualId = rawId.split("-")[0];
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
 
   let job;
   try {
@@ -262,6 +269,17 @@ export default async function JobDetailPage({ params }: Props) {
 
   const isRemote = job.remote_type === "worldwide" || job.location?.toLowerCase().includes("remote");
 
+  // Fetch related jobs in the same category (internal linking system)
+  let relatedJobs: any[] = [];
+  try {
+    const relatedRes = await fetchJobs({ category: job.category, limit: 10 });
+    relatedJobs = (relatedRes.jobs || [])
+      .filter((j) => j.id !== job.id)
+      .slice(0, 3);
+  } catch (err) {
+    console.error("Failed to fetch related jobs:", err);
+  }
+
   // Generate Google Jobs schema structure (JSON-LD)
   const jsonLd = {
     "@context": "https://schema.org",
@@ -291,7 +309,69 @@ export default async function JobDetailPage({ params }: Props) {
     ...(parsedSalary ? { "baseSalary": parsedSalary } : {}),
   };
 
+  // Generate Breadcrumb List structured data
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": baseUrl
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Jobs",
+        "item": `${baseUrl}/jobs`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": job.category || "General",
+        "item": `${baseUrl}/jobs?category=${encodeURIComponent(job.category || "General")}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": job.title,
+        "item": `${baseUrl}/jobs/${job.id}-${slugify(job.title + " " + job.company)}`
+      }
+    ]
+  };
 
+  // Generate FAQ structured data dynamically
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": `Is the ${job.title} position remote, hybrid, or on-site?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `The ${job.title} role at ${job.company} is a ${job.workplace_type || (isRemote ? "remote" : "on-site")} opportunity. The location specified by the employer is ${job.location || "anywhere"}.`
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `What is the salary range for the ${job.title} role at ${job.company}?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `The salary for ${job.title} at ${job.company} is ${job.salary || "not explicitly stated, but is competitive and based on experience"}.`
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `How do I apply for the ${job.title} position?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `You can apply directly by visiting the dynamic application link on FutureTalent at: https://www.futuretalent.online/jobs/${job.id}-${slugify(job.title + " " + job.company)}.`
+        }
+      }
+    ]
+  };
 
   return (
     <div className="min-h-screen pt-32 pb-16 px-6 relative z-10">
@@ -299,6 +379,18 @@ export default async function JobDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      ></script>
+
+      {/* Inject Breadcrumb List Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      ></script>
+
+      {/* Inject FAQ Page Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       ></script>
 
       <div className="max-w-4xl mx-auto">
@@ -404,6 +496,84 @@ export default async function JobDetailPage({ params }: Props) {
             <AdUnit slot="2009071234" format="rectangle" style={{ minHeight: "250px" }} />
           </div>
         </div>
+
+        {/* Similar Opportunities (Related Jobs / Internal Linking System) */}
+        {relatedJobs.length > 0 && (
+          <div className="mt-16 border-t border-white/10 pt-12">
+            <h2 className="text-2xl font-bold text-white mb-6">Similar Opportunities</h2>
+            <div className="space-y-4">
+              {relatedJobs.map((rJob) => {
+                const style = getCategoryStyle(rJob.category);
+                const color = style.color || "#8b5cf6";
+                const wpBadge = WORKPLACE_BADGES[rJob.workplace_type] || WORKPLACE_BADGES.remote;
+                const rSlug = slugify(rJob.title + " " + rJob.company);
+                const rUrl = `/jobs/${rJob.id}-${rSlug}`;
+
+                return (
+                  <div
+                    key={rJob.id}
+                    className="glass-card job-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-300 animate-fadeIn"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg"
+                        style={{
+                          background: `linear-gradient(135deg, ${color}20, ${color}40)`,
+                          border: `1px solid ${color}50`,
+                          color: color,
+                        }}
+                      >
+                        {rJob.company_logo && rJob.company_logo.length > 1 && rJob.company_logo.startsWith("http") ? (
+                          <img src={rJob.company_logo} alt={rJob.company} className="w-full h-full object-contain p-1 rounded-lg" />
+                        ) : (
+                          rJob.company_logo || rJob.company[0]
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white mb-1 hover:text-violet-400 transition-colors">
+                          <Link href={rUrl}>{rJob.title}</Link>
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#94a3b8]">
+                          <span className="font-medium text-white">{rJob.company}</span>
+                          <span>•</span>
+                          <span>{rJob.location}</span>
+                          <span>•</span>
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{
+                              background: `${wpBadge.color}15`,
+                              color: wpBadge.color,
+                              border: `1px solid ${wpBadge.color}30`,
+                            }}
+                          >
+                            {wpBadge.icon} {wpBadge.label}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-4 border-t border-white/5 sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
+                      <div className="text-left sm:text-right">
+                        <div className="text-sm font-bold text-[#34d399]">{rJob.salary || "Competitive"}</div>
+                        <div className="text-[10px] text-[#a78bfa]">{rJob.category}</div>
+                      </div>
+                      <Link
+                        href={rUrl}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold hover:scale-105 transition-all duration-300 whitespace-nowrap"
+                        style={{
+                          background: `${color}15`,
+                          color: color,
+                          border: `1px solid ${color}30`,
+                        }}
+                      >
+                        View Job →
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
