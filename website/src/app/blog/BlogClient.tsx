@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import { fetchNews, News } from "../../lib/api";
 import AdUnit from "@/components/AdUnit";
-
-gsap.registerPlugin(ScrollTrigger);
 
 export default function BlogPage() {
   const [featuredPost, setFeaturedPost] = useState<News | null>(null);
@@ -109,65 +105,75 @@ export default function BlogPage() {
   useEffect(() => {
     if (loading) return;
 
-    const ctx = gsap.context(() => {
-      // Header Animation
-      gsap.fromTo(
-        ".blog-title",
-        { opacity: 0, y: 40, rotationX: -20 },
-        { opacity: 1, y: 0, rotationX: 0, duration: 1, ease: "power4.out" }
-      );
-      
-      gsap.fromTo(
-        ".blog-subtitle",
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, delay: 0.2, ease: "power3.out" }
-      );
+    let ctx: any;
+    const initGsap = async () => {
+      const { default: gsapInstance } = await import("gsap");
+      const { ScrollTrigger: ScrollTriggerInstance } = await import("gsap/ScrollTrigger");
+      gsapInstance.registerPlugin(ScrollTriggerInstance);
 
-      // Featured Post Parallax & Reveal
-      if (featuredRef.current) {
-        gsap.fromTo(
-          featuredRef.current,
-          { opacity: 0, scale: 0.95 },
-          { opacity: 1, scale: 1, duration: 1.2, delay: 0.3, ease: "expo.out" }
+      ctx = gsapInstance.context(() => {
+        // Header Animation
+        gsapInstance.fromTo(
+          ".blog-title",
+          { opacity: 0, y: 40, rotationX: -20 },
+          { opacity: 1, y: 0, rotationX: 0, duration: 1, ease: "power4.out" }
+        );
+        
+        gsapInstance.fromTo(
+          ".blog-subtitle",
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.8, delay: 0.2, ease: "power3.out" }
         );
 
-        gsap.to(".featured-img", {
-          yPercent: 20,
-          ease: "none",
-          scrollTrigger: {
-            trigger: featuredRef.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
-        });
-      }
-
-      // Grid Items Stagger
-      if (gridRef.current) {
-        const cards = gridRef.current.querySelectorAll(".blog-card");
-        if (cards.length > 0) {
-          gsap.fromTo(
-            cards,
-            { opacity: 0, y: 50 },
-            {
-              opacity: 1,
-              y: 0,
-              stagger: 0.15,
-              duration: 0.8,
-              ease: "back.out(1.2)",
-              scrollTrigger: {
-                trigger: gridRef.current,
-                start: "top 85%",
-                toggleActions: "play none none none",
-              },
-            }
+        // Featured Post Parallax & Reveal
+        if (featuredRef.current) {
+          gsapInstance.fromTo(
+            featuredRef.current,
+            { opacity: 0, scale: 0.95 },
+            { opacity: 1, scale: 1, duration: 1.2, delay: 0.3, ease: "expo.out" }
           );
-        }
-      }
-    });
 
-    return () => ctx.revert();
+          gsapInstance.to(".featured-img", {
+            yPercent: 20,
+            ease: "none",
+            scrollTrigger: {
+              trigger: featuredRef.current,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          });
+        }
+
+        // Grid Items Stagger
+        if (gridRef.current) {
+          const cards = gridRef.current.querySelectorAll(".blog-card");
+          if (cards.length > 0) {
+            gsapInstance.fromTo(
+              cards,
+              { opacity: 0, y: 50 },
+              {
+                opacity: 1,
+                y: 0,
+                stagger: 0.15,
+                duration: 0.8,
+                ease: "back.out(1.2)",
+                scrollTrigger: {
+                  trigger: gridRef.current,
+                  start: "top 85%",
+                  toggleActions: "play none none none",
+                },
+              }
+            );
+          }
+        }
+      });
+    };
+    initGsap();
+
+    return () => {
+      if (ctx) ctx.revert();
+    };
   }, [loading]);
 
   const formatDate = (dateStr: string) => {
@@ -242,6 +248,8 @@ export default function BlogPage() {
                     src={featuredPost.image} 
                     alt={featuredPost.title}
                     className="featured-img w-full h-[120%] object-cover object-center -top-[10%] relative transition-transform duration-1000 group-hover:scale-105"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                 </div>
                 
@@ -298,6 +306,8 @@ export default function BlogPage() {
                           src={post.image} 
                           alt={post.title}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="absolute top-4 left-4 z-20">
                           <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/10 text-xs font-bold uppercase tracking-wider">

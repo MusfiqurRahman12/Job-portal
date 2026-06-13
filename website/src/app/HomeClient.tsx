@@ -1,15 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount, slugify, getCategoryStyle } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import AdUnit from "@/components/AdUnit";
-
-gsap.registerPlugin(ScrollTrigger);
 
 /* ═══════════════════════════════════════════════════════
    MOCK DATA — Replace with API calls to your Go backend
@@ -153,32 +149,43 @@ function AnimatedStat({ value, suffix = "" }: { value: number; suffix?: string }
   useEffect(() => {
     if (!elRef.current || value === 0) return;
     
-    const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: elRef.current,
-        start: "top 90%",
-        onEnter: () => {
-          gsap.fromTo(
-            elRef.current,
-            { textContent: "0" },
-            {
-              textContent: value,
-              duration: 2,
-              ease: "power2.out",
-              snap: { textContent: 1 },
-              onUpdate: function () {
-                const val = Math.round(parseFloat(gsap.getProperty(elRef.current, "textContent") as string));
-                if (elRef.current) {
-                  elRef.current.textContent = val.toLocaleString() + suffix;
-                }
-              },
-            }
-          );
-        },
-        once: true,
+    let ctx: any;
+    const animate = async () => {
+      const { default: gsapInstance } = await import("gsap");
+      const { ScrollTrigger: ScrollTriggerInstance } = await import("gsap/ScrollTrigger");
+      gsapInstance.registerPlugin(ScrollTriggerInstance);
+      
+      ctx = gsapInstance.context(() => {
+        ScrollTriggerInstance.create({
+          trigger: elRef.current,
+          start: "top 90%",
+          onEnter: () => {
+            gsapInstance.fromTo(
+              elRef.current,
+              { textContent: "0" },
+              {
+                textContent: value,
+                duration: 2,
+                ease: "power2.out",
+                snap: { textContent: 1 },
+                onUpdate: function () {
+                  const val = Math.round(parseFloat(gsapInstance.getProperty(elRef.current, "textContent") as string));
+                  if (elRef.current) {
+                    elRef.current.textContent = val.toLocaleString() + suffix;
+                  }
+                },
+              }
+            );
+          },
+          once: true,
+        });
       });
-    });
-    return () => ctx.revert();
+    };
+    animate();
+    
+    return () => {
+      if (ctx) ctx.revert();
+    };
   }, [value, suffix]);
 
   return (
@@ -295,90 +302,78 @@ export default function Home() {
 
   /* ─── GSAP ANIMATIONS ─── */
   useEffect(() => {
+    let ctx: any;
     // Small delay to ensure DOM is fully painted before GSAP measures
     const timer = setTimeout(() => {
-      const ctx = gsap.context(() => {
-        // ── Hero entrance timeline ──
-        const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } });
-        heroTl
-          .fromTo(".hero-badge", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 })
-          .fromTo(".hero-title-line", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.15 }, "-=0.3")
-          .fromTo(".hero-subtitle", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6 }, "-=0.4")
-          .fromTo(".search-container", { opacity: 0, y: 30, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.7 }, "-=0.3")
-          .fromTo(".hero-tags .tag-chip", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, stagger: 0.08 }, "-=0.3");
+      const initGsap = async () => {
+        const { default: gsapInstance } = await import("gsap");
+        const { ScrollTrigger: ScrollTriggerInstance } = await import("gsap/ScrollTrigger");
+        gsapInstance.registerPlugin(ScrollTriggerInstance);
 
-        // ── Hero glow pulse ──
-        gsap.to(".hero-glow", {
-          scale: 1.15,
-          opacity: 0.9,
-          duration: 4,
-          repeat: -1,
-          yoyo: true,
-          ease: "sine.inOut",
-        });
+        ctx = gsapInstance.context(() => {
+          // ── Hero entrance timeline ──
+          const heroTl = gsapInstance.timeline({ defaults: { ease: "power3.out" } });
+          heroTl
+            .fromTo(".hero-badge", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 })
+            .fromTo(".hero-title-line", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.15 }, "-=0.3")
+            .fromTo(".hero-subtitle", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6 }, "-=0.4")
+            .fromTo(".search-container", { opacity: 0, y: 30, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.7 }, "-=0.3")
+            .fromTo(".hero-tags .tag-chip", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, stagger: 0.08 }, "-=0.3");
 
-        gsap.to(".hero-glow-secondary", {
-          scale: 1.25,
-          opacity: 0.7,
-          duration: 5,
-          repeat: -1,
-          yoyo: true,
-          ease: "sine.inOut",
-          delay: 1,
-        });
+          // ── Hero glow pulse ──
+          gsapInstance.to(".hero-glow", {
+            scale: 1.15,
+            opacity: 0.9,
+            duration: 4,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut",
+          });
 
-        // ── Stats counter animation handled by AnimatedStat component ──
+          gsapInstance.to(".hero-glow-secondary", {
+            scale: 1.25,
+            opacity: 0.7,
+            duration: 5,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut",
+            delay: 1,
+          });
 
-        if (statsRef.current) {
-          // Stats container reveal
-          gsap.fromTo(
-            statsRef.current,
-            { opacity: 0, y: 50 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.8,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: statsRef.current,
-                start: "top 90%",
-                toggleActions: "play none none none",
-              },
-            }
-          );
-        }
+          // ── Stats counter animation handled by AnimatedStat component ──
 
-        // ── Categories stagger reveal ──
-        if (categoriesRef.current) {
-          const catCards = categoriesRef.current.querySelectorAll(".category-card");
-          gsap.fromTo(
-            catCards,
-            { opacity: 0, y: 60, scale: 0.9 },
-            {
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              duration: 0.6,
-              stagger: 0.1,
-              ease: "back.out(1.4)",
-              scrollTrigger: {
-                trigger: categoriesRef.current,
-                start: "top 90%",
-                toggleActions: "play none none none",
-              },
-            }
-          );
-
-          const catHeading = categoriesRef.current.querySelector(".section-heading");
-          if (catHeading) {
-            gsap.fromTo(
-              catHeading,
-              { opacity: 0, x: -40 },
+          if (statsRef.current) {
+            // Stats container reveal
+            gsapInstance.fromTo(
+              statsRef.current,
+              { opacity: 0, y: 50 },
               {
                 opacity: 1,
-                x: 0,
-                duration: 0.7,
+                y: 0,
+                duration: 0.8,
                 ease: "power3.out",
+                scrollTrigger: {
+                  trigger: statsRef.current,
+                  start: "top 90%",
+                  toggleActions: "play none none none",
+                },
+              }
+            );
+          }
+
+          // ── Categories stagger reveal ──
+          if (categoriesRef.current) {
+            const catCards = categoriesRef.current.querySelectorAll(".category-card");
+            gsapInstance.fromTo(
+              catCards,
+              { opacity: 0, y: 60, scale: 0.9 },
+              {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: "back.out(1.4)",
                 scrollTrigger: {
                   trigger: categoriesRef.current,
                   start: "top 90%",
@@ -386,38 +381,38 @@ export default function Home() {
                 },
               }
             );
-          }
-        }
 
-        // ── Job cards stagger reveal ──
-        if (jobsRef.current) {
-          const jobCards = jobsRef.current.querySelectorAll(".job-card");
-          gsap.fromTo(
-            jobCards,
-            { opacity: 0, y: 40 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.5,
-              stagger: 0.12,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: jobsRef.current,
-                start: "top 90%",
-                toggleActions: "play none none none",
-              },
+            const catHeading = categoriesRef.current.querySelector(".section-heading");
+            if (catHeading) {
+              gsapInstance.fromTo(
+                catHeading,
+                { opacity: 0, x: -40 },
+                {
+                  opacity: 1,
+                  x: 0,
+                  duration: 0.7,
+                  ease: "power3.out",
+                  scrollTrigger: {
+                    trigger: categoriesRef.current,
+                    start: "top 90%",
+                    toggleActions: "play none none none",
+                  },
+                }
+              );
             }
-          );
+          }
 
-          const jobHeading = jobsRef.current.querySelector(".section-heading");
-          if (jobHeading) {
-            gsap.fromTo(
-              jobHeading,
-              { opacity: 0, x: -40 },
+          // ── Job cards stagger reveal ──
+          if (jobsRef.current) {
+            const jobCards = jobsRef.current.querySelectorAll(".job-card");
+            gsapInstance.fromTo(
+              jobCards,
+              { opacity: 0, y: 40 },
               {
                 opacity: 1,
-                x: 0,
-                duration: 0.7,
+                y: 0,
+                duration: 0.5,
+                stagger: 0.12,
                 ease: "power3.out",
                 scrollTrigger: {
                   trigger: jobsRef.current,
@@ -426,49 +421,70 @@ export default function Home() {
                 },
               }
             );
-          }
-        }
 
-        // ── CTA reveal ──
-        if (ctaRef.current) {
-          gsap.fromTo(
-            ctaRef.current,
-            { opacity: 0, scale: 0.92, y: 30 },
-            {
-              opacity: 1,
-              scale: 1,
-              y: 0,
-              duration: 0.8,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: ctaRef.current,
-                start: "top 90%",
-                toggleActions: "play none none none",
-              },
+            const jobHeading = jobsRef.current.querySelector(".section-heading");
+            if (jobHeading) {
+              gsapInstance.fromTo(
+                jobHeading,
+                { opacity: 0, x: -40 },
+                {
+                  opacity: 1,
+                  x: 0,
+                  duration: 0.7,
+                  ease: "power3.out",
+                  scrollTrigger: {
+                    trigger: jobsRef.current,
+                    start: "top 90%",
+                    toggleActions: "play none none none",
+                  },
+                }
+              );
             }
-          );
-        }
+          }
 
-        // ── Parallax grid lines on scroll ──
-        gsap.to(".hero-bg-grid", {
-          scrollTrigger: {
-            trigger: ".hero-section",
-            start: "top top",
-            end: "bottom top",
-            scrub: 1.5,
-          },
-          y: 80,
-          opacity: 0,
+          // ── CTA reveal ──
+          if (ctaRef.current) {
+            gsapInstance.fromTo(
+              ctaRef.current,
+              { opacity: 0, scale: 0.92, y: 30 },
+              {
+                opacity: 1,
+                scale: 1,
+                y: 0,
+                duration: 0.8,
+                ease: "power3.out",
+                scrollTrigger: {
+                  trigger: ctaRef.current,
+                  start: "top 90%",
+                  toggleActions: "play none none none",
+                },
+              }
+            );
+          }
+
+          // ── Parallax grid lines on scroll ──
+          gsapInstance.to(".hero-bg-grid", {
+            scrollTrigger: {
+              trigger: ".hero-section",
+              start: "top top",
+              end: "bottom top",
+              scrub: 1.5,
+            },
+            y: 80,
+            opacity: 0,
+          });
+
+          // Force a ScrollTrigger refresh after all animations are set up
+          ScrollTriggerInstance.refresh();
         });
-
-        // Force a ScrollTrigger refresh after all animations are set up
-        ScrollTrigger.refresh();
-      });
-
-      return () => ctx.revert();
+      };
+      initGsap();
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (ctx) ctx.revert();
+    };
   }, []);
 
   return (
@@ -714,7 +730,7 @@ export default function Home() {
                     }}
                   >
                     {company_logo && company_logo.length > 1 && company_logo.startsWith("http") ? (
-                      <img src={company_logo} alt={company} className="w-full h-full object-contain rounded-md p-1" />
+                      <img src={company_logo} alt={company} className="w-full h-full object-contain rounded-md p-1" loading="lazy" decoding="async" />
                     ) : (
                       company_logo
                     )}

@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, use } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import { fetchNewsBySlug, fetchNews, News } from "../../../lib/api";
 import AdUnit from "@/components/AdUnit";
 import ReadAloudButton from "@/components/ReadAloudButton";
-
-gsap.registerPlugin(ScrollTrigger);
 
 export default function BlogPostPage({ params, initialArticle }: { params: Promise<{ slug: string }>, initialArticle: News | null }) {
   const resolvedParams = use(params);
@@ -123,49 +119,57 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
     window.addEventListener("scroll", handleScrolledNav);
 
     // GSAP Animations
-    const ctx = gsap.context(() => {
-      // Hero Entrance
-      gsap.fromTo(
-        ".article-meta",
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
-      );
-      
-      gsap.fromTo(
-        ".article-title",
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: "power3.out" }
-      );
+    let ctx: any;
+    const initGsap = async () => {
+      const { default: gsapInstance } = await import("gsap");
+      const { ScrollTrigger: ScrollTriggerInstance } = await import("gsap/ScrollTrigger");
+      gsapInstance.registerPlugin(ScrollTriggerInstance);
 
-      gsap.fromTo(
-        ".hero-image-container",
-        { opacity: 0, scale: 0.95 },
-        { opacity: 1, scale: 1, duration: 1.2, delay: 0.4, ease: "expo.out" }
-      );
-
-      // Content fade in on scroll
-      if (articleRef.current) {
-        gsap.fromTo(
-          articleRef.current,
-          { opacity: 0, y: 40 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 1,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: articleRef.current,
-              start: "top 85%",
-            }
-          }
+      ctx = gsapInstance.context(() => {
+        // Hero Entrance
+        gsapInstance.fromTo(
+          ".article-meta",
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
         );
-      }
-    });
+        
+        gsapInstance.fromTo(
+          ".article-title",
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: "power3.out" }
+        );
+
+        gsapInstance.fromTo(
+          ".hero-image-container",
+          { opacity: 0, scale: 0.95 },
+          { opacity: 1, scale: 1, duration: 1.2, delay: 0.4, ease: "expo.out" }
+        );
+
+        // Content fade in on scroll
+        if (articleRef.current) {
+          gsapInstance.fromTo(
+            articleRef.current,
+            { opacity: 0, y: 40 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 1,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: articleRef.current,
+                start: "top 85%",
+              }
+            }
+          );
+        }
+      });
+    };
+    initGsap();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("scroll", handleScrolledNav);
-      ctx.revert();
+      if (ctx) ctx.revert();
     };
   }, [loading, article]);
 
@@ -245,6 +249,8 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
             src={article.image} 
             alt="Hero" 
             className="absolute inset-0 w-full h-full object-cover"
+            decoding="async"
+            fetchPriority="high"
           />
         </div>
       </div>
