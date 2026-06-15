@@ -35,13 +35,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       workplaceDesc = "hybrid";
     }
 
-    const title = `${job.title} Job at ${job.company} | ${workplaceLabel} | FutureTalent`;
+    const isExpired = job.expires_at ? new Date(job.expires_at).getTime() < Date.now() : false;
+    const isActuallyExpired = !job.is_active || isExpired;
+
+    let title = `${job.title} Job at ${job.company} | ${workplaceLabel} | FutureTalent`;
+    if (isActuallyExpired) {
+      title = `[Expired] ${job.title} Job at ${job.company} | FutureTalent`;
+    }
     
     const salaryPart = job.salary && job.salary.trim() !== "" 
       ? `with a salary of ${job.salary}` 
       : "with competitive compensation";
       
-    const description = `Looking for a ${job.title} job? Apply to join ${job.company} for this ${workplaceDesc} opportunity based in ${job.location || "anywhere"}. View details, ${salaryPart}, and apply online today on FutureTalent!`;
+    let description = `Looking for a ${job.title} job? Apply to join ${job.company} for this ${workplaceDesc} opportunity based in ${job.location || "anywhere"}. View details, ${salaryPart}, and apply online today on FutureTalent!`;
+    if (isActuallyExpired) {
+      description = `This job posting for ${job.title} at ${job.company} has expired. Discover active similar positions on FutureTalent.`;
+    }
     
     const slug = slugify(job.title + " " + job.company);
     const canonicalUrl = `/jobs/${job.id}-${slug}`;
@@ -252,11 +261,8 @@ export default async function JobDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Return 404 status code if the job is inactive or has expired
   const isExpired = job.expires_at ? new Date(job.expires_at).getTime() < Date.now() : false;
-  if (!job.is_active || isExpired) {
-    notFound();
-  }
+  const isActuallyExpired = !job.is_active || isExpired;
 
   const hoursLeft = getHoursLeft(job.expires_at);
 
@@ -392,11 +398,13 @@ export default async function JobDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen pt-32 pb-16 px-6 relative z-10">
-      {/* Inject Google Jobs Search Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      ></script>
+      {/* Inject Google Jobs Search Structured Data (only if active) */}
+      {!isActuallyExpired && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        ></script>
+      )}
 
       {/* Inject Breadcrumb List Structured Data */}
       <script
@@ -404,28 +412,57 @@ export default async function JobDetailPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       ></script>
 
-      {/* Inject FAQ Page Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      ></script>
+      {/* Inject FAQ Page Structured Data (only if active) */}
+      {!isActuallyExpired && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        ></script>
+      )}
 
       <div className="max-w-4xl mx-auto">
         <Link href="/jobs" className="inline-block text-[#94a3b8] hover:text-white mb-8 transition-colors">
           ← Back to all jobs
         </Link>
 
+        {isActuallyExpired && (
+          <div className="glass-card mb-8 border-l-4 border-rose-500 bg-[rgba(244,63,94,0.08)] p-6 rounded-r-xl relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-rose-400 text-lg font-bold mb-1 flex items-center gap-2">
+                  <span>🚫</span> Position Expired
+                </h3>
+                <p className="text-[#cbd5e1] text-sm m-0 leading-relaxed">
+                  This job posting for <strong className="text-white">{job.title}</strong> at <strong className="text-white">{job.company}</strong> is no longer active. You can explore similar open opportunities below.
+                </p>
+              </div>
+              <Link
+                href="/jobs"
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-gray-200 transition-all duration-300 whitespace-nowrap shadow-lg shadow-white/5"
+              >
+                Browse Active Jobs
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Job Header */}
         <div className="glass-card p-8 md:p-12 mb-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-6">
-            <span className={`expire-badge ${hoursLeft <= 4 ? "urgent" : hoursLeft <= 12 ? "expiring" : "fresh"}`}>
-              {hoursLeft <= 4 && "⚠ "}
-              {hoursLeft <= 24 ? `${hoursLeft}h left to apply` : (() => {
-                const days = Math.floor(hoursLeft / 24);
-                const hours = hoursLeft % 24;
-                return hours === 0 ? `${days}d left to apply` : `${days}d ${hours}h left to apply`;
-              })()}
-            </span>
+            {isActuallyExpired ? (
+              <span className="expire-badge urgent bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                Expired
+              </span>
+            ) : (
+              <span className={`expire-badge ${hoursLeft <= 4 ? "urgent" : hoursLeft <= 12 ? "expiring" : "fresh"}`}>
+                {hoursLeft <= 4 && "⚠ "}
+                {hoursLeft <= 24 ? `${hoursLeft}h left to apply` : (() => {
+                  const days = Math.floor(hoursLeft / 24);
+                  const hours = hoursLeft % 24;
+                  return hours === 0 ? `${days}d left to apply` : `${days}d ${hours}h left to apply`;
+                })()}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row gap-6 md:items-center mb-6">
@@ -479,17 +516,30 @@ export default async function JobDetailPage({ params }: Props) {
           <div className="space-y-6">
             <div className="glass-card p-6">
               <h3 className="text-xl font-bold text-white mb-4">Apply Now</h3>
-              <p className="text-sm text-[#94a3b8] mb-6">
-                This job is active but will expire soon. Click below to apply on the company's website.
-              </p>
-              <a
-                href={job.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full py-3 rounded-xl text-center font-bold bg-white text-black hover:bg-gray-200 transition-colors"
-              >
-                Apply for this role ↗
-              </a>
+              {isActuallyExpired ? (
+                <>
+                  <p className="text-sm text-[#94a3b8] mb-6">
+                    Applications are no longer being accepted for this position as the listing has expired.
+                  </p>
+                  <div className="block w-full py-3 rounded-xl text-center font-bold bg-white/5 text-white/40 border border-white/10 cursor-not-allowed select-none">
+                    Position Closed
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-[#94a3b8] mb-6">
+                    This job is active but will expire soon. Click below to apply on the company's website.
+                  </p>
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full py-3 rounded-xl text-center font-bold bg-white text-black hover:bg-gray-200 transition-colors"
+                  >
+                    Apply for this role ↗
+                  </a>
+                </>
+              )}
             </div>
 
             <div className="glass-card p-6">
