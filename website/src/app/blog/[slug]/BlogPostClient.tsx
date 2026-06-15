@@ -352,23 +352,136 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
   );
 }
 
-// Basic markdown formatter
+// Robust markdown formatter
 function formatMarkdown(text: string) {
   if (!text) return "";
   
-  let html = text
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\*(.*)\*/gim, '<em>$1</em>')
-    .replace(/> (.*$)/gim, '<blockquote>$1</blockquote>')
-    .replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2' target='_blank'>$1</a>")
-    .replace(/\n$/gim, '<br />');
-
-  // Basic list formatting
-  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
-  html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const htmlLines: string[] = [];
   
-  return html.replace(/\n\n/g, "<br/><br/>").replace(/\n/g, "<br/>");
+  let inList = false;
+  let listType: "ul" | "ol" | null = null;
+  let inBlockquote = false;
+  let paragraphBuffer: string[] = [];
+  
+  const flushParagraph = () => {
+    if (paragraphBuffer.length > 0) {
+      htmlLines.push(`<p>${paragraphBuffer.join("<br/>")}</p>`);
+      paragraphBuffer = [];
+    }
+  };
+  
+  const flushList = () => {
+    if (inList) {
+      htmlLines.push(listType === "ul" ? "</ul>" : "</ol>");
+      inList = false;
+      listType = null;
+    }
+  };
+  
+  const flushBlockquote = () => {
+    if (inBlockquote) {
+      htmlLines.push("</blockquote>");
+      inBlockquote = false;
+    }
+  };
+  
+  const flushAll = () => {
+    flushParagraph();
+    flushList();
+    flushBlockquote();
+  };
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    if (trimmed === "") {
+      flushAll();
+      continue;
+    }
+    
+    // Headings
+    if (trimmed.startsWith("# ")) {
+      flushAll();
+      htmlLines.push(`<h1>${trimmed.substring(2)}</h1>`);
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      flushAll();
+      htmlLines.push(`<h2>${trimmed.substring(3)}</h2>`);
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      flushAll();
+      htmlLines.push(`<h3>${trimmed.substring(4)}</h3>`);
+      continue;
+    }
+    
+    // Blockquote
+    if (trimmed.startsWith("> ")) {
+      flushParagraph();
+      flushList();
+      if (!inBlockquote) {
+        htmlLines.push("<blockquote>");
+        inBlockquote = true;
+      }
+      htmlLines.push(trimmed.substring(2));
+      continue;
+    }
+    
+    // Unordered List
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      flushParagraph();
+      flushBlockquote();
+      if (!inList || listType !== "ul") {
+        flushList();
+        htmlLines.push("<ul>");
+        inList = true;
+        listType = "ul";
+      }
+      htmlLines.push(`<li>${trimmed.substring(2)}</li>`);
+      continue;
+    }
+    
+    // Ordered List
+    const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olMatch) {
+      flushParagraph();
+      flushBlockquote();
+      if (!inList || listType !== "ol") {
+        flushList();
+        htmlLines.push("<ol>");
+        inList = true;
+        listType = "ol";
+      }
+      htmlLines.push(`<li>${olMatch[2]}</li>`);
+      continue;
+    }
+    
+    // Horizontal Rule
+    if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
+      flushAll();
+      htmlLines.push("<hr/>");
+      continue;
+    }
+    
+    // Normal paragraph text line
+    flushList();
+    flushBlockquote();
+    paragraphBuffer.push(line);
+  }
+  
+  flushAll();
+  
+  let html = htmlLines.join("\n");
+  
+  // Parse inline elements (bold, italic, links)
+  html = html
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+  return html;
 }
