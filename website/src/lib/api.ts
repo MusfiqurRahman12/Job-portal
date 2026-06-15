@@ -1,5 +1,8 @@
 import { supabase } from "./supabaseClient";
 
+const isLocalAPI = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder");
+const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
 export interface Job {
   id: string;
   title: string;
@@ -42,6 +45,23 @@ export async function fetchJobs(params?: {
   const limit = params?.limit || 10;
   const offset = params?.offset || 0;
 
+  if (isLocalAPI) {
+    try {
+      const urlParams = new URLSearchParams();
+      urlParams.append("limit", limit.toString());
+      urlParams.append("offset", offset.toString());
+      if (params?.category) urlParams.append("category", params.category);
+      if (params?.remote_type) urlParams.append("remote_type", params.remote_type);
+      if (params?.search) urlParams.append("search", params.search);
+
+      const res = await fetch(`${apiBase}/api/jobs?${urlParams.toString()}`);
+      if (!res.ok) throw new Error(`Go API returned status ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error("Local API fetch failed, falling back to empty/mock:", err);
+    }
+  }
+
   let query = supabase
     .from("jobs")
     .select("*", { count: "exact" })
@@ -79,6 +99,17 @@ export async function fetchJobs(params?: {
 }
 
 export async function fetchJobCount(): Promise<number> {
+  if (isLocalAPI) {
+    try {
+      const res = await fetch(`${apiBase}/api/jobs/count`);
+      if (!res.ok) throw new Error(`Go API returned status ${res.status}`);
+      const data = await res.json();
+      return data.count;
+    } catch (err) {
+      console.error("Local API count fetch failed, falling back:", err);
+    }
+  }
+
   const { count, error } = await supabase
     .from("jobs")
     .select("*", { count: "exact", head: true })
@@ -93,6 +124,16 @@ export async function fetchJobCount(): Promise<number> {
 }
 
 export async function fetchCategories(): Promise<CategoryCount[]> {
+  if (isLocalAPI) {
+    try {
+      const res = await fetch(`${apiBase}/api/jobs/categories`);
+      if (!res.ok) throw new Error(`Go API returned status ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error("Local API categories fetch failed, falling back:", err);
+    }
+  }
+
   const { data, error } = await supabase
     .from("category_counts")
     .select("*");
@@ -111,6 +152,16 @@ export function getHoursLeft(expiresAt: string): number {
 }
 
 export async function fetchJobById(id: string): Promise<Job> {
+  if (isLocalAPI) {
+    try {
+      const res = await fetch(`${apiBase}/api/jobs/${id}`);
+      if (!res.ok) throw new Error(`Go API returned status ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error("Local API job detail fetch failed, falling back:", err);
+    }
+  }
+
   const { data, error } = await supabase
     .from("jobs")
     .select("*")
@@ -146,6 +197,16 @@ export interface NewsResponse {
 }
 
 export async function fetchNews(limit = 10, offset = 0): Promise<NewsResponse> {
+  if (isLocalAPI) {
+    try {
+      const res = await fetch(`${apiBase}/api/news?limit=${limit}&offset=${offset}`);
+      if (!res.ok) throw new Error(`Go API returned status ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error("Local API news fetch failed, falling back:", err);
+    }
+  }
+
   const { data, count, error } = await supabase
     .from("news")
     .select("*", { count: "exact" })
@@ -166,6 +227,16 @@ export async function fetchNews(limit = 10, offset = 0): Promise<NewsResponse> {
 }
 
 export async function fetchNewsBySlug(slug: string): Promise<News> {
+  if (isLocalAPI) {
+    try {
+      const res = await fetch(`${apiBase}/api/news/${slug}`);
+      if (!res.ok) throw new Error(`Go API returned status ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error("Local API news by slug fetch failed, falling back:", err);
+    }
+  }
+
   const { data, error } = await supabase
     .from("news")
     .select("*")

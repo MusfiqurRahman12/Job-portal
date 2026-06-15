@@ -1,0 +1,21 @@
+name: Seed Blog Articles (Manual)
+
+on:
+  workflow_dispatch: {} # Manual trigger button from the Actions tab
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run Seeder
+        run: go run scratch/seed_blog.go
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
