@@ -4,6 +4,8 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AdUnit from "@/components/AdUnit";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ id: string }>;
 }
@@ -305,7 +307,7 @@ export default async function JobDetailPage({ params }: Props) {
     "hiringOrganization": {
       "@type": "Organization",
       "name": job.company,
-      ...(job.company_logo && job.company_logo.length > 1 && job.company_logo.startsWith("http")
+      ...(job.company_logo && job.company_logo.length > 1 && (job.company_logo.startsWith("http") || job.company_logo.startsWith("data:"))
         ? { "logo": job.company_logo }
         : {}),
     },
@@ -432,7 +434,7 @@ export default async function JobDetailPage({ params }: Props) {
                 border: "1px solid rgba(139, 92, 246, 0.5)",
               }}
             >
-              {job.company_logo && job.company_logo.length > 1 && job.company_logo.startsWith("http") ? (
+              {job.company_logo && job.company_logo.length > 1 && (job.company_logo.startsWith("http") || job.company_logo.startsWith("data:")) ? (
                 <img src={job.company_logo} alt={job.company} className="w-full h-full object-contain p-2" />
               ) : (
                 job.company_logo || job.company[0]
@@ -561,7 +563,7 @@ export default async function JobDetailPage({ params }: Props) {
                           color: color,
                         }}
                       >
-                        {rJob.company_logo && rJob.company_logo.length > 1 && rJob.company_logo.startsWith("http") ? (
+                        {rJob.company_logo && rJob.company_logo.length > 1 && (rJob.company_logo.startsWith("http") || rJob.company_logo.startsWith("data:")) ? (
                           <img src={rJob.company_logo} alt={rJob.company} className="w-full h-full object-contain p-1 rounded-lg" />
                         ) : (
                           rJob.company_logo || rJob.company[0]

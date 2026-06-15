@@ -729,7 +729,7 @@ export default function Home() {
                       color: color,
                     }}
                   >
-                    {company_logo && company_logo.length > 1 && company_logo.startsWith("http") ? (
+                    {company_logo && company_logo.length > 1 && (company_logo.startsWith("http") || company_logo.startsWith("data:")) ? (
                       <img src={company_logo} alt={company} className="w-full h-full object-contain rounded-md p-1" loading="lazy" decoding="async" />
                     ) : (
                       company_logo

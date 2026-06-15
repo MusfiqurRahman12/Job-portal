@@ -3,6 +3,8 @@ import { Metadata } from "next";
 import { fetchNewsBySlug } from "@/lib/api";
 import { notFound } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ slug: string }>;
 }

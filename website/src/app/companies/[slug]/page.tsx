@@ -213,7 +213,7 @@ export default async function CompanyPage({ params }: PageProps) {
                           color: color,
                         }}
                       >
-                        {companyLogo.length > 1 && companyLogo.startsWith("http") ? (
+                        {companyLogo.length > 1 && (companyLogo.startsWith("http") || companyLogo.startsWith("data:")) ? (
                           <img
                             src={companyLogo}
                             alt={job.company}

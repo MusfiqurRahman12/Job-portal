@@ -221,7 +221,7 @@ async function JobsContent({ searchParams }: PageProps) {
                               color: color,
                             }}
                           >
-                            {company_logo.length > 1 && company_logo.startsWith("http") ? (
+                            {company_logo.length > 1 && (company_logo.startsWith("http") || company_logo.startsWith("data:")) ? (
                               <img src={company_logo} alt={job.company} className="w-full h-full object-contain rounded-md p-1" />
                             ) : (
                               company_logo

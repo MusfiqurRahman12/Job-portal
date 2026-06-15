@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ImageUploaderWithResizer from '@/components/ImageUploaderWithResizer';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -29,6 +30,10 @@ export default function AdminDashboard() {
   // Scraper State
   const [runs, setRuns] = useState<any[]>([]);
   const [scraperLoading, setScraperLoading] = useState(false);
+
+  // Image Upload States
+  const [jobLogo, setJobLogo] = useState('');
+  const [articleImage, setArticleImage] = useState('');
 
   // Authentication & Session Management
   const checkSession = async () => {
@@ -112,18 +117,23 @@ export default function AdminDashboard() {
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
+    const payload = {
+      ...data,
+      logo: jobLogo
+    };
 
     try {
       const res = await fetch('/api/admin/job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
       if (res.ok) {
         setMessage(`Success! Job posted with slug: ${result.slug}`);
         (e.target as HTMLFormElement).reset();
+        setJobLogo('');
         fetchStats();
       } else {
         setMessage(`Error: ${result.error}`);
@@ -142,18 +152,23 @@ export default function AdminDashboard() {
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
+    const payload = {
+      ...data,
+      image: articleImage
+    };
 
     try {
       const res = await fetch('/api/admin/news', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
       if (res.ok) {
         setMessage(`Success! Article posted with slug: ${result.slug}`);
         (e.target as HTMLFormElement).reset();
+        setArticleImage('');
         fetchStats();
       } else {
         setMessage(`Error: ${result.error}`);
@@ -427,6 +442,17 @@ export default function AdminDashboard() {
               </div>
 
               <div>
+                <ImageUploaderWithResizer
+                  label="Company Logo"
+                  aspectRatio={1}
+                  maxWidth={200}
+                  maxHeight={200}
+                  onImageCropped={(base64) => setJobLogo(base64)}
+                  initialImageUrl={jobLogo}
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">Job Description (Markdown formatting supported)</label>
                 <textarea required name="description" rows={8} className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 font-mono text-sm" placeholder="## About the role..."></textarea>
               </div>
@@ -457,8 +483,14 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Hero Image URL</label>
-                <input name="image" type="url" className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500" placeholder="https://images.unsplash.com/..." />
+                <ImageUploaderWithResizer
+                  label="Hero Image"
+                  aspectRatio={16 / 9}
+                  maxWidth={1200}
+                  maxHeight={675}
+                  onImageCropped={(base64) => setArticleImage(base64)}
+                  initialImageUrl={articleImage}
+                />
               </div>
 
               <div>
