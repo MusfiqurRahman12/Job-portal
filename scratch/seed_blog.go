@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"job-portal-crawler/scraper"
 	"job-portal-crawler/shared"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -26,6 +28,18 @@ func main() {
 		log.Fatal("DATABASE_URL environment variable is required")
 	}
 
+	// Open raw SQL connection for clearing old articles
+	rawDb, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("Failed to open connection: %v", err)
+	}
+	defer rawDb.Close()
+
+	_, err = rawDb.Exec("DELETE FROM news WHERE author = 'FutureTalent Editorial'")
+	if err != nil {
+		log.Fatalf("Failed to clear old articles: %v", err)
+	}
+
 	db, err := scraper.NewDB(dbURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
@@ -40,7 +54,7 @@ func main() {
 			Category: "Career",
 			Image:    "/images/career-pivot.png",
 			Author:   "FutureTalent Editorial",
-			URL:      "https://www.futuretalent.online/blog/the-art-of-the-silent-career-pivot-how-sarah-swapped-spreadsheets-for-wireframes",
+			URL:      "/about",
 			Content: `## The Invisible Wall of Finance
 
 Six years. That’s how long Sarah Jenkins spent tracking depreciation schedules, preparing quarterly tax reconciliations, and correcting cell errors in Excel. She was good at it—precise, dependable, and quietly bored out of her mind. 
@@ -106,7 +120,7 @@ Ten months after her pivot table epiphany, Sarah accepted a remote role as a Pro
 			Category: "Career",
 			Image:    "/images/remote-interview.png",
 			Author:   "FutureTalent Editorial",
-			URL:      "https://www.futuretalent.online/blog/cracking-the-virtual-handshake-what-remote-interviewers-actually-look-for",
+			URL:      "/about",
 			Content: `## The Ghost in the Machine
 
 Marcus Chen had a problem. He was a brilliant backend engineer with a resume that should have had recruiters fighting over him. He had optimized database pipelines, managed migrations for millions of users, and wrote clean, modular Go code. 
@@ -166,7 +180,7 @@ Before you join your next remote interview, run through this non-technical check
 			Category: "Career",
 			Image:    "/images/self-taught-portfolio.png",
 			Author:   "FutureTalent Editorial",
-			URL:      "https://www.futuretalent.online/blog/imposter-syndrome-and-the-self-taught-developer-building-a-portfolio-that-speaks-louder-than-a-degree",
+			URL:      "/about",
 			Content: `## The Resume Black Hole
 
 Elena Rostova had submitted 242 applications in ninety days. The result? 238 automated rejections, three recruiter calls that went nowhere, and one coding challenge she completed but never heard back from. 

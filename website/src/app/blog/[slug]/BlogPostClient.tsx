@@ -302,10 +302,21 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
 
           {article.url && article.url !== "#" && (
             <div className="mt-12 p-6 rounded-2xl bg-white/5 border border-white/10 text-sm">
-              <span className="text-[#64748b]">Original article syndication sourced from </span>
-              <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-[#34d399] font-bold hover:underline">
-                {article.author} ↗
-              </a>
+              {article.author.toLowerCase().includes("futuretalent") || article.author.toLowerCase().includes("future talent") ? (
+                <>
+                  <span className="text-[#64748b]">This is an original article published by the </span>
+                  <Link href="/about" className="text-[#34d399] font-bold hover:underline">
+                    FutureTalent Editorial Team ↗
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <span className="text-[#64748b]">Original article syndication sourced from </span>
+                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-[#34d399] font-bold hover:underline">
+                    {article.author} ↗
+                  </a>
+                </>
+              )}
             </div>
           )}
         </div>
