@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import AdUnit from "@/components/AdUnit";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface Props {
   params: Promise<{ id: string }>;
