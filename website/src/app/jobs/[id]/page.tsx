@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AdUnit from "@/components/AdUnit";
+import ShareButtons from "@/components/ShareButtons";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -489,6 +490,17 @@ export default async function JobDetailPage({ params }: Props) {
               >
                 Apply for this role ↗
               </a>
+            </div>
+
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-bold text-white mb-3">Share Job</h3>
+              <p className="text-xs text-[#94a3b8] mb-4">
+                Know someone who would be a perfect fit? Share this opportunity.
+              </p>
+              <ShareButtons 
+                url={`${baseUrl}/jobs/${job.id}-${slugify(job.title + " " + job.company)}`} 
+                title={`Remote job: ${job.title} at ${job.company}`} 
+              />
             </div>
 
             <div className="glass-card p-6">
