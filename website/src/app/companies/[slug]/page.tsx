@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { fetchCompanyBySlug, fetchJobsByCompany, getHoursLeft, getCategoryStyle, slugify } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface PageProps {
   params: Promise<{

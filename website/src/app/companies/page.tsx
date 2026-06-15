@@ -3,6 +3,7 @@ import { fetchCompanyProfiles } from "@/lib/api";
 import CompaniesClient from "./CompaniesClient";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Top Global & Remote Companies Hiring Now | FutureTalent",

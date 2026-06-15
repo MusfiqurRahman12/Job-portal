@@ -41,6 +41,7 @@ export default function CompanyGlobe({
     null
   );
   const [isGlobeReady, setIsGlobeReady] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
 
   // Map companies to coordinates
   useEffect(() => {
@@ -85,14 +86,21 @@ export default function CompanyGlobe({
     setArcsData(arcs);
   }, [companies]);
 
-  // Responsive container sizing – use much larger dimensions
+  // Touch detection and responsive container sizing
   useEffect(() => {
+    setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
     if (!containerRef.current) return;
 
     const updateSize = () => {
       const width = containerRef.current?.clientWidth || 800;
-      // Much taller: up to 70% of viewport height, min 550px
-      const height = Math.min(750, Math.max(550, window.innerHeight * 0.7));
+      const isMobile = window.innerWidth < 768;
+      
+      // On mobile, height should be smaller (360px - 400px) so the page is scrollable
+      // On desktop, height can be taller (550px - 750px)
+      const height = isMobile 
+        ? Math.min(450, Math.max(360, window.innerHeight * 0.5))
+        : Math.min(750, Math.max(550, window.innerHeight * 0.7));
+        
       setGlobeSize({ width, height });
     };
 
@@ -299,8 +307,9 @@ export default function CompanyGlobe({
       {/* Instructions Overlay */}
       <div className="absolute bottom-4 text-center pointer-events-none select-none">
         <span className="text-[10px] uppercase tracking-[0.2em] text-[#64748b] bg-[#07060f]/70 px-4 py-1.5 rounded-full border border-white/5 backdrop-blur-xl font-medium">
-          Drag to Rotate &bull; Scroll to Zoom &bull; Click dot to
-          explore
+          {isTouch 
+            ? "Swipe to Rotate • Pinch to Zoom • Tap dot to explore"
+            : "Drag to Rotate • Scroll to Zoom • Click dot to explore"}
         </span>
       </div>
     </div>

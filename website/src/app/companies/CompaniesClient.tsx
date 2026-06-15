@@ -65,6 +65,17 @@ export default function CompaniesClient({ companies }: CompaniesClientProps) {
     setCurrentPage(1);
   }, [searchTerm, sortBy]);
 
+  // Force reload when navigating back to the page from browser cache (bfcache)
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   // Paginated slice of the filtered/sorted dataset
   const paginatedCompanies = useMemo(() => {
     const startIndex = (currentPage - 1) * PAGE_SIZE;

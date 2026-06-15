@@ -107,6 +107,13 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
             <span className="text-[0.65rem] font-medium">Jobs</span>
           </Link>
 
+          <Link href="/companies" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${pathname?.startsWith("/companies") ? "text-[var(--accent-violet-light)]" : "text-[#64748b] hover:text-white"}`}>
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span className="text-[0.65rem] font-medium">Companies</span>
+          </Link>
+
           <Link href="/blog" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${pathname?.startsWith("/blog") ? "text-[var(--accent-violet-light)]" : "text-[#64748b] hover:text-white"}`}>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H14" />

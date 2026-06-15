@@ -32,8 +32,14 @@ export const metadata: Metadata = {
   },
   title: "FutureTalent — Find Remote, Hybrid & On-Site Jobs Worldwide",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "FutureTalent",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: "/favicon.ico",
+    apple: "/icons/icon-192x192.png",
   },
   description:
     "Discover the best remote, hybrid, and on-site jobs from around the world. Curated daily by AI. Engineering, Design, Marketing, and more — updated every 24 hours.",
