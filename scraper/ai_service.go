@@ -595,7 +595,7 @@ Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JS
 			PublishedAt: time.Now(),
 		}
 		art.GenerateSlug()
-		art.URL = "https://futuretalent.com/blog/" + art.Slug
+		art.URL = "https://www.futuretalent.online/blog/" + art.Slug
 		
 		// Assign dynamic image based on keyword
 		if res.ImageKeyword != "" {

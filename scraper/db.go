@@ -292,7 +292,7 @@ func (db *DB) runCleanup() {
 		for _, j := range expiredJobs {
 			go func(jobID int64, title string, company string) {
 				slug := Slugify(fmt.Sprintf("%s %s", title, company))
-				jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d-%s", jobID, slug)
+				jobURL := fmt.Sprintf("https://www.futuretalent.online/jobs/%d-%s", jobID, slug)
 				if err := NotifyGoogleIndexing(jobURL, "URL_DELETED"); err != nil {
 					log.Printf("[Indexing] ⚠️ Google Indexing API deletion failed for %s: %v", jobURL, err)
 				}

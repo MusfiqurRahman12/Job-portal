@@ -283,7 +283,7 @@ func (e *Engine) processJobBatch(jobs []*shared.Job) {
 		// 4. Notify Google Indexing API of the new/updated job URL
 		go func(id int64, title string, company string) {
 			slug := Slugify(fmt.Sprintf("%s %s", title, company))
-			jobURL := fmt.Sprintf("https://futuretalent.com/jobs/%d-%s", id, slug)
+			jobURL := fmt.Sprintf("https://www.futuretalent.online/jobs/%d-%s", id, slug)
 			if err := NotifyGoogleIndexing(jobURL, "URL_UPDATED"); err != nil {
 				log.Printf("[Indexing] ⚠️ Google Indexing API update failed for %s: %v", jobURL, err)
 			}
