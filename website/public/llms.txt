@@ -1,0 +1,27 @@
+# FutureTalent
+> FutureTalent is an AI-powered job board and scraper engine designed to discover, optimize, and present remote, hybrid, and on-site job listings worldwide, alongside career resources and news.
+
+## WebMCP AI Agent Tools
+FutureTalent supports the WebMCP (Web Model Context Protocol) standard. If your agent is running in a WebMCP-capable browser environment, you can invoke the following tools directly via `navigator.modelContext`:
+
+*   `search_jobs({ search, category, remote_type, limit, offset })`: Search and filter active job listings.
+*   `get_job_details({ id })`: Retrieve the complete details and full description of a specific job listing.
+*   `get_categories()`: Get all job categories and their active job counts.
+*   `get_blog_posts({ limit, offset })`: Get recent articles and career guides from the blog.
+
+## Core Navigation URLs
+AI agents can navigate or scrape the following key paths directly:
+*   [Jobs Search Directory](https://www.futuretalent.online/jobs): Listing page supporting `?search=X`, `?category=Y`, and `?page=Z` query parameters.
+*   [Companies Directory](https://www.futuretalent.online/companies): Directory of companies offering active jobs.
+*   [Career Blog](https://www.futuretalent.online/blog): Articles and remote work guides.
+*   [About Us](https://www.futuretalent.online/about): Core details about FutureTalent.
+*   [Contact](https://www.futuretalent.online/contact): Support email and contact options.
+*   [Sitemap](https://www.futuretalent.online/sitemap.xml): Complete, dynamic XML sitemap listing all jobs, articles, and companies.
+
+## Structured Metadata
+All job details pages (`/jobs/[id]`) contain schema-structured metadata:
+*   **JSON-LD JobPosting**: Exposes standard `JobPosting` schema (title, company, description, datePosted, validThrough, employmentType, location) for Google Jobs indexer compliance.
+
+## Optional Reference Pages
+*   [Privacy Policy](https://www.futuretalent.online/privacy)
+*   [Terms of Service](https://www.futuretalent.online/terms)

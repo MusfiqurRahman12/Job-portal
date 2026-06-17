@@ -3,6 +3,8 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import PWAProvider from "@/components/PWAProvider";
 import Script from "next/script";
+import WebMCPInitializer from "@/components/WebMCPInitializer";
+
 
 const inter = Inter({
   variable: "--font-inter",
@@ -81,6 +83,7 @@ export default function RootLayout({
         <PWAProvider>
           {children}
         </PWAProvider>
+        <WebMCPInitializer />
       </body>
     </html>
   );

@@ -1,0 +1,96 @@
+# FutureTalent - Complete Agent Reference
+> This is a comprehensive technical map of the FutureTalent platform, including backend API routes, scraping engine structures, and developer references for AI agents.
+
+## WebMCP Tool Interface
+Below is the exact JavaScript signature for WebMCP tools registered on the page via `navigator.modelContext`:
+
+```javascript
+// 1. Search for jobs
+navigator.modelContext.registerTool({
+  name: "search_jobs",
+  description: "Search and filter active job listings on FutureTalent.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      search: { type: "string" },
+      category: { type: "string" },
+      remote_type: { type: "string", enum: ["worldwide", "country"] },
+      limit: { type: "number", default: 10 },
+      offset: { type: "number", default: 0 }
+    }
+  }
+}, callback);
+
+// 2. Get full job details
+navigator.modelContext.registerTool({
+  name: "get_job_details",
+  description: "Retrieve full details and markdown description of a job listing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: { type: "string", description: "The unique job ID or hyphenated ID" }
+    },
+    required: ["id"]
+  }
+}, callback);
+```
+
+## Public Backend API Endpoints
+AI agents can fetch data programmatically from these API endpoints (supported content-type: `application/json`):
+
+### 1. Jobs Endpoint
+*   **Path**: `/api/jobs`
+*   **Method**: `GET`
+*   **Query Parameters**:
+    *   `limit` (number, default: 10)
+    *   `offset` (number, default: 0)
+    *   `category` (string)
+    *   `remote_type` (string: `worldwide` | `country`)
+    *   `search` (string)
+*   **Response Format**:
+    ```json
+    {
+      "jobs": [
+        {
+          "id": "number",
+          "title": "string",
+          "company": "string",
+          "location": "string",
+          "description": "string (markdown)",
+          "remote_type": "string",
+          "workplace_type": "string",
+          "category": "string",
+          "salary": "string",
+          "posted_at": "string (timestamp)",
+          "tags": ["string"]
+        }
+      ],
+      "count": "number",
+      "limit": "number",
+      "offset": "number"
+    }
+    ```
+
+### 2. Job Count
+*   **Path**: `/api/jobs/count`
+*   **Method**: `GET`
+*   **Response**: `{"count": 7079}`
+
+### 3. Categories List
+*   **Path**: `/api/jobs/categories`
+*   **Method**: `GET`
+*   **Response**: `[{"name": "Frontend Development", "count": 102}]`
+
+### 4. News Articles
+*   **Path**: `/api/news`
+*   **Method**: `GET`
+*   **Query Parameters**: `limit`, `offset`
+*   **Response**: `{"news": [...], "count": 397}`
+
+---
+
+## Scraper Pipeline Architecture
+FutureTalent uses a Go-based scraper engine running on GitHub Actions (`cron: '0 */6 * * *'`).
+*   **Scraper registration**: Scrapes remote boards (We Work Remotely, RemoteOK, Remotive, Arbeitnow, Himalayas, Jobicy, custom ATS pages, etc.)
+*   **Content optimization**: Passes descriptions to the Gemini API (`gemini-2.5-flash-lite`) to format them with clean Markdown headers, responsibilities, requirements, and AI Insights.
+*   **Indexing**: Uses the Google Indexing API to submit new job detail URLs (`https://www.futuretalent.online/jobs/[slug]`) to Google Search Console immediately upon saving.
