@@ -45,6 +45,7 @@ export default function AdminDashboard() {
   const [socialRunning, setSocialRunning] = useState(false);
   const [previewTab, setPreviewTab] = useState<'twitter' | 'linkedin'>('twitter');
   const [expandedLogs, setExpandedLogs] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchSocialPosts = async () => {
     try {
@@ -75,6 +76,36 @@ export default function AdminDashboard() {
       }
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
+    }
+  };
+
+  const handleSocialImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setMessage('Uploading media...');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/admin/social/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setSocialImage(data.url);
+        setMessage('Media uploaded successfully!');
+      } else {
+        setMessage(`Upload error: ${data.error || 'Failed to upload'}`);
+      }
+    } catch (err: any) {
+      setMessage(`Upload error: ${err.message}`);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -844,16 +875,59 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
-                    {/* Media Image URL */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Attachment Image URL (Optional)</label>
-                      <input
-                        type="url"
-                        value={socialImage}
-                        onChange={(e) => setSocialImage(e.target.value)}
-                        className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 text-sm focus:ring-1 focus:ring-teal-500"
-                        placeholder="https://images.unsplash.com/photo-..."
-                      />
+                    {/* Media Image Attachment */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-400">
+                        Attachment Image (Optional)
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* URL input */}
+                        <div>
+                          <span className="block text-xs text-gray-500 mb-1">Paste Image URL</span>
+                          <input
+                            type="url"
+                            value={socialImage}
+                            onChange={(e) => setSocialImage(e.target.value)}
+                            className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 text-xs focus:ring-1 focus:ring-teal-500"
+                            placeholder="https://images.unsplash.com/photo-..."
+                          />
+                        </div>
+                        {/* File upload picker */}
+                        <div>
+                          <span className="block text-xs text-gray-500 mb-1">Or Upload Image File</span>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleSocialImageUpload}
+                              disabled={uploading}
+                              className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-teal-500 text-xs focus:ring-1 focus:ring-teal-500 file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-teal-950 file:text-teal-400 hover:file:bg-teal-900 file:cursor-pointer disabled:opacity-50"
+                            />
+                            {uploading && (
+                              <div className="absolute right-3 top-2 flex items-center gap-1.5 text-teal-400 text-xs font-semibold">
+                                <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-ping"></span>
+                                Uploading...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {socialImage && (
+                        <div className="mt-2 flex items-center gap-2 bg-[#14141d]/30 border border-gray-800 rounded-lg p-2">
+                          <img src={socialImage} alt="Preview" className="w-12 h-12 object-cover rounded border border-zinc-800" />
+                          <div className="flex-1 min-w-0">
+                            <span className="block text-[10px] text-gray-500 uppercase font-bold">Selected Image</span>
+                            <span className="block text-xs text-teal-400 truncate font-mono">{socialImage}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSocialImage('')}
+                            className="text-xs text-red-400 hover:text-red-300 font-semibold px-2"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Date scheduling */}
