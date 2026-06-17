@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/admin/social/run",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}
