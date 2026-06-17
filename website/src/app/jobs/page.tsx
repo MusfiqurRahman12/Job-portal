@@ -3,6 +3,7 @@ import { fetchJobs, fetchCategories, getHoursLeft, Job, slugify, getCategoryStyl
 import Link from "next/link";
 import SearchForm from "@/components/SearchForm";
 import { Metadata } from "next";
+import CompanyLogo from "@/components/CompanyLogo";
 
 export const metadata: Metadata = {
   title: "Browse All Jobs — Remote, Hybrid & On-Site | FutureTalent",
@@ -221,11 +222,12 @@ async function JobsContent({ searchParams }: PageProps) {
                               color: color,
                             }}
                           >
-                            {company_logo.length > 1 && (company_logo.startsWith("http") || company_logo.startsWith("data:")) ? (
-                              <img src={company_logo} alt={job.company} className="w-full h-full object-contain rounded-md p-1" />
-                            ) : (
-                              company_logo
-                            )}
+                            <CompanyLogo
+                              src={company_logo}
+                              alt={job.company}
+                              className="w-full h-full object-contain rounded-md p-1"
+                              fallback={company_logo}
+                            />
                           </div>
                           <div>
                             <h3 className="text-[1.05rem] font-bold text-white mb-1">{job.title}</h3>

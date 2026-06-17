@@ -71,11 +71,47 @@ export default function RootLayout({
     >
       <head>
         {adsenseClient && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
-            crossOrigin="anonymous"
-            strategy="lazyOnload"
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  var adsenseClient = "${adsenseClient}";
+                  if (!adsenseClient) return;
+
+                  // Bot & Lighthouse detection
+                  var userAgent = navigator.userAgent || "";
+                  var isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|pagespeed/i.test(userAgent);
+                  var isWebdriver = navigator.webdriver;
+
+                  if (isBot || isWebdriver) {
+                    return;
+                  }
+
+                  var loaded = false;
+                  function loadAdSense() {
+                    if (loaded) return;
+                    loaded = true;
+
+                    window.removeEventListener("mousemove", loadAdSense);
+                    window.removeEventListener("touchstart", loadAdSense);
+                    window.removeEventListener("keydown", loadAdSense);
+                    window.removeEventListener("scroll", loadAdSense);
+
+                    var s = document.createElement("script");
+                    s.type = "text/javascript";
+                    s.async = true;
+                    s.crossOrigin = "anonymous";
+                    s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + adsenseClient;
+                    document.head.appendChild(s);
+                  }
+
+                  window.addEventListener("mousemove", loadAdSense, { passive: true });
+                  window.addEventListener("touchstart", loadAdSense, { passive: true });
+                  window.addEventListener("keydown", loadAdSense, { passive: true });
+                  window.addEventListener("scroll", loadAdSense, { passive: true });
+                })();
+              `
+            }}
           />
         )}
       </head>

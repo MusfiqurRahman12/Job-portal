@@ -4,6 +4,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AdUnit from "@/components/AdUnit";
 import ShareButtons from "@/components/ShareButtons";
+import CompanyLogo from "@/components/CompanyLogo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -473,11 +474,12 @@ export default async function JobDetailPage({ params }: Props) {
                 border: "1px solid rgba(139, 92, 246, 0.5)",
               }}
             >
-              {job.company_logo && job.company_logo.length > 1 && (job.company_logo.startsWith("http") || job.company_logo.startsWith("data:")) ? (
-                <img src={job.company_logo} alt={job.company} className="w-full h-full object-contain p-2" />
-              ) : (
-                job.company_logo || job.company[0]
-              )}
+              <CompanyLogo
+                src={job.company_logo}
+                alt={job.company}
+                className="w-full h-full object-contain p-2"
+                fallback={job.company_logo || job.company[0]}
+              />
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{job.title}</h1>
@@ -626,11 +628,12 @@ export default async function JobDetailPage({ params }: Props) {
                           color: color,
                         }}
                       >
-                        {rJob.company_logo && rJob.company_logo.length > 1 && (rJob.company_logo.startsWith("http") || rJob.company_logo.startsWith("data:")) ? (
-                          <img src={rJob.company_logo} alt={rJob.company} className="w-full h-full object-contain p-1 rounded-lg" />
-                        ) : (
-                          rJob.company_logo || rJob.company[0]
-                        )}
+                          <CompanyLogo
+                            src={rJob.company_logo}
+                            alt={rJob.company}
+                            className="w-full h-full object-contain p-1 rounded-lg"
+                            fallback={rJob.company_logo || rJob.company[0]}
+                          />
                       </div>
                       <div>
                         <h3 className="font-bold text-white mb-1 hover:text-violet-400 transition-colors">

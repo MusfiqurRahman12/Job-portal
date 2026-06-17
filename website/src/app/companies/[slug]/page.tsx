@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchCompanyBySlug, fetchJobsByCompany, getHoursLeft, getCategoryStyle, slugify } from "@/lib/api";
+import CompanyLogo from "@/components/CompanyLogo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -149,21 +150,16 @@ export default async function CompanyPage({ params }: PageProps) {
           {/* Profile Card */}
           <div className="glass-card p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Logo */}
-            {company.logo ? (
-              <img
-                src={company.logo}
-                alt={`${company.name} logo`}
-                className="w-20 h-20 object-contain bg-white/5 border border-white/10 rounded-2xl p-2.5 flex-shrink-0"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = `data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 width=%27100%27 height=%27100%27><rect width=%27100%25%27 height=%27100%25%27 fill=%27%231e1b4b%27/><text x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-family=%27sans-serif%27 font-size=%2740%27 font-weight=%27bold%27 fill=%27%23a78bfa%27>${company.name.substring(0, 1).toUpperCase()}</text></svg>`;
-                }}
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-2xl bg-violet-600/15 border border-violet-500/20 flex items-center justify-center text-2xl font-bold text-violet-400 flex-shrink-0">
-                {company.name.substring(0, 2).toUpperCase()}
-              </div>
-            )}
+            <CompanyLogo
+              src={company.logo}
+              alt={`${company.name} logo`}
+              className="w-20 h-20 object-contain bg-white/5 border border-white/10 rounded-2xl p-2.5 flex-shrink-0"
+              fallback={
+                <div className="w-20 h-20 rounded-2xl bg-violet-600/15 border border-violet-500/20 flex items-center justify-center text-2xl font-bold text-violet-400 flex-shrink-0">
+                  {company.name.substring(0, 2).toUpperCase()}
+                </div>
+              }
+            />
 
             {/* Profile Info */}
             <div className="text-center sm:text-left flex-1">
@@ -214,15 +210,12 @@ export default async function CompanyPage({ params }: PageProps) {
                           color: color,
                         }}
                       >
-                        {companyLogo.length > 1 && (companyLogo.startsWith("http") || companyLogo.startsWith("data:")) ? (
-                          <img
+                          <CompanyLogo
                             src={companyLogo}
                             alt={job.company}
                             className="w-full h-full object-contain rounded-md p-1"
+                            fallback={companyLogo}
                           />
-                        ) : (
-                          companyLogo
-                        )}
                       </div>
                       <div>
                         <h3 className="text-[1.05rem] font-bold text-white mb-1">{job.title}</h3>

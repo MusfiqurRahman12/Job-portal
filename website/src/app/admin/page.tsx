@@ -765,7 +765,7 @@ export default function AdminDashboard() {
                           <div className="text-xs text-gray-500 text-right">
                             Started:<br/>{new Date(run.created_at).toLocaleString()}
                           </div>
-                          <a href={run.html_url} target="_blank" rel="noreferrer" className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-emerald-400 text-sm font-medium transition-colors whitespace-nowrap">
+                          <a href={run.html_url} target="_blank" rel="noopener noreferrer" className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-emerald-400 text-sm font-medium transition-colors whitespace-nowrap">
                             View Log ↗
                           </a>
                         </div>
@@ -1114,7 +1114,7 @@ export default function AdminDashboard() {
                             {post.content}
                           </p>
                           {post.image_url && (
-                            <a href={post.image_url} target="_blank" rel="noreferrer" className="text-xs text-teal-400 hover:underline mt-2 inline-block">
+                            <a href={post.image_url} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-400 hover:underline mt-2 inline-block">
                               🔗 Image Attachment: {post.image_url.substring(0, 60)}...
                             </a>
                           )}

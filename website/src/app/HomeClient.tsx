@@ -6,6 +6,7 @@ import Link from "next/link";
 import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount, slugify, getCategoryStyle } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import AdUnit from "@/components/AdUnit";
+import CompanyLogo from "@/components/CompanyLogo";
 
 /* ═══════════════════════════════════════════════════════
    MOCK DATA — Replace with API calls to your Go backend
@@ -729,11 +730,14 @@ export default function Home() {
                       color: color,
                     }}
                   >
-                    {company_logo && company_logo.length > 1 && (company_logo.startsWith("http") || company_logo.startsWith("data:")) ? (
-                      <img src={company_logo} alt={company} className="w-full h-full object-contain rounded-md p-1" loading="lazy" decoding="async" />
-                    ) : (
-                      company_logo
-                    )}
+                    <CompanyLogo
+                      src={company_logo}
+                      alt={company}
+                      className="w-full h-full object-contain rounded-md p-1"
+                      fallback={company_logo}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
                   <div>
                     <h3 className="text-[1.05rem] font-bold text-white mb-1">{title}</h3>
