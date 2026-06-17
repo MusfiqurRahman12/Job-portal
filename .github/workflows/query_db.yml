@@ -13,6 +13,7 @@ jobs:
       - name: Query Counts
         run: |
           echo "Connecting to DB and querying counts..."
-          psql "$DATABASE_URL" -c "SELECT 'active_jobs' as metric, COUNT(*)::text as val FROM jobs WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP UNION ALL SELECT 'total_articles' as metric, COUNT(*)::text as val FROM news;"
+          CLEAN_URL=$(echo -n "$DATABASE_URL" | tr -d '\r' | tr -d '\n')
+          psql "$CLEAN_URL" -c "SELECT 'active_jobs' as metric, COUNT(*)::text as val FROM jobs WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP UNION ALL SELECT 'total_articles' as metric, COUNT(*)::text as val FROM news;"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
