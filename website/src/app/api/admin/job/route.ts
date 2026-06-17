@@ -11,10 +11,14 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    // Create URL-friendly slug
+    // Create URL-friendly slug parts
     const titleSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const companySlug = data.company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const slug = `${titleSlug}-at-${companySlug}-${Math.floor(Math.random() * 1000)}`;
+
+    // Collect tags, blending UI selected type as a searchable tag
+    const typeTag = data.type ? [data.type] : [];
+    const userTags = data.tags ? data.tags.split(',').map((t: string) => t.trim()) : [];
+    const mergedTags = Array.from(new Set([...typeTag, ...userTags])).filter(Boolean);
 
     const job = {
       title: data.title,
@@ -24,23 +28,30 @@ export async function POST(req: Request) {
       salary: data.salary || '',
       description: data.description,
       category: data.category || 'Other',
-      type: data.type || 'Full-time',
-      slug: slug,
-      logo: data.logo || '',
+      company_logo: data.logo || '',
       source: 'manual',
+      remote_type: 'worldwide',
+      workplace_type: 'remote',
       created_at: new Date().toISOString(),
       posted_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
       is_active: true,
-      tags: data.tags ? data.tags.split(',').map((t: string) => t.trim()) : []
+      tags: mergedTags
     };
 
-    const { error } = await supabase.from('jobs').insert([job]);
+    const { data: inserted, error } = await supabase
+      .from('jobs')
+      .insert([job])
+      .select('id')
+      .single();
 
     if (error) {
       console.error('Supabase insert error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    const insertedId = inserted?.id || Math.floor(Math.random() * 10000);
+    const slug = `${insertedId}-${titleSlug}-at-${companySlug}`;
 
     return NextResponse.json({ success: true, slug });
   } catch (err: any) {
@@ -48,3 +59,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
