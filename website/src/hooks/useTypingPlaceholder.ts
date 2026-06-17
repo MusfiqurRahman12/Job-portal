@@ -15,9 +15,9 @@ export function useTypingPlaceholder({
   strings,
   staticPlaceholder,
   value = "",
-  speed = 80,
-  backSpeed = 40,
-  delay = 2000,
+  speed = 50,
+  backSpeed = 25,
+  delay = 1200,
 }: UseTypingPlaceholderProps) {
   const [placeholder, setPlaceholder] = useState(staticPlaceholder);
   const [isFocused, setIsFocused] = useState(false);
@@ -121,7 +121,7 @@ export function useTypingPlaceholder({
         } else if (state.isDeleting && state.text === "") {
           state.isDeleting = false;
           state.stringIndex++;
-          typeSpeed = 400; // Pause before typing next word
+          typeSpeed = 250; // Pause before typing next word
         }
 
         timerId = setTimeout(tick, typeSpeed);
