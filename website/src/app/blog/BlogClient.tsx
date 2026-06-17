@@ -210,7 +210,7 @@ export default function BlogPage() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <header className="text-center mb-10 md:mb-14" ref={headerRef}>
-            <h1 className="blog-title text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 tracking-tight mb-6" style={{ perspective: "1000px" }}>
+            <h1 className="blog-title text-3xl sm:text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 tracking-tight mb-6" style={{ perspective: "1000px" }}>
               The Remote <span className="text-[#34d399]">Pulse</span>
             </h1>
             <p className="blog-subtitle text-lg text-[#94a3b8] max-w-2xl mx-auto">
@@ -241,7 +241,7 @@ export default function BlogPage() {
             {featuredPost && (
               <div 
                 ref={featuredRef}
-                className="relative w-full h-[300px] sm:h-[450px] md:h-[500px] rounded-[2rem] overflow-hidden mb-8 md:mb-12 group cursor-pointer border border-white/10 shadow-2xl shadow-[#34d399]/5"
+                className="relative w-full h-[420px] sm:h-[450px] md:h-[500px] rounded-[2rem] overflow-hidden mb-8 md:mb-12 group cursor-pointer border border-white/10 shadow-2xl shadow-[#34d399]/5"
               >
                 <div className="absolute inset-0 overflow-hidden">
                   <img 
@@ -257,18 +257,18 @@ export default function BlogPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/80 to-transparent" />
                 
                 {/* Content */}
-                <div className="absolute bottom-0 left-0 w-full p-8 md:p-12">
+                <div className="absolute bottom-0 left-0 w-full p-6 sm:p-10 md:p-12">
                   <Link href={`/blog/${featuredPost.slug}`} className="block">
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-3">
                       <span className="px-3 py-1 rounded-full bg-[#34d399]/20 text-[#34d399] border border-[#34d399]/30 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
                         {featuredPost.category}
                       </span>
                       <span className="text-[#94a3b8] text-sm font-medium">{formatDate(featuredPost.published_at)}</span>
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight group-hover:text-[#34d399] transition-colors duration-300">
+                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-3 leading-tight group-hover:text-[#34d399] transition-colors duration-300">
                       {featuredPost.title}
                     </h2>
-                    <p className="text-[#cbd5e1] text-lg max-w-3xl line-clamp-2 md:line-clamp-3 mb-6">
+                    <p className="text-[#cbd5e1] text-base md:text-lg max-w-3xl hidden sm:line-clamp-2 md:line-clamp-3 mb-6">
                       {featuredPost.excerpt}
                     </p>
                     <div className="flex items-center gap-3">
@@ -293,14 +293,14 @@ export default function BlogPage() {
                   Latest Articles
                 </h3>
                 
-                <div className="grid md:grid-cols-2 gap-8" ref={gridRef}>
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8" ref={gridRef}>
                   {blogPosts.map((post) => (
                     <Link 
                       href={`/blog/${post.slug}`} 
                       key={post.id}
                       className="blog-card group block relative rounded-3xl bg-[#0f172a]/80 border border-white/5 overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:border-[#34d399]/30 hover:shadow-xl hover:shadow-[#34d399]/10"
                     >
-                      <div className="h-56 w-full overflow-hidden relative">
+                      <div className="h-48 sm:h-56 w-full overflow-hidden relative">
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300 z-10" />
                         <img 
                           src={post.image} 
@@ -316,9 +316,9 @@ export default function BlogPage() {
                         </div>
                       </div>
                       
-                      <div className="p-8">
+                      <div className="p-5 sm:p-8">
                         <div className="text-[#64748b] text-sm font-medium mb-3">{formatDate(post.published_at)}</div>
-                        <h4 className="text-xl md:text-2xl font-bold text-white mb-3 leading-snug group-hover:text-[#34d399] transition-colors duration-300">
+                        <h4 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-3 leading-snug group-hover:text-[#34d399] transition-colors duration-300">
                           {post.title}
                         </h4>
                         <p className="text-[#94a3b8] line-clamp-2">
@@ -338,13 +338,13 @@ export default function BlogPage() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-12 border-t border-white/5 pt-8">
+              <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-12 border-t border-white/5 pt-8">
                 <button
                   disabled={currentPage === 1 || loading}
                   onClick={() => handlePageChange(currentPage - 1)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer text-white"
+                  className="px-3 sm:px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer text-white"
                 >
-                  ← Prev
+                  <span>←</span> <span className="hidden sm:inline ml-1">Prev</span>
                 </button>
 
                 {getPageNumbers().map((p, idx) => {
@@ -374,9 +374,9 @@ export default function BlogPage() {
                 <button
                   disabled={currentPage === totalPages || loading}
                   onClick={() => handlePageChange(currentPage + 1)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer text-white"
+                  className="px-3 sm:px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 cursor-pointer text-white"
                 >
-                  Next →
+                  <span className="hidden sm:inline mr-1">Next</span> <span>→</span>
                 </button>
               </div>
             )}

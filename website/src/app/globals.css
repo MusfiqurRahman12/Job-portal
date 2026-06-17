@@ -833,3 +833,14 @@ h1, h2, h3, h4, h5, h6 {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin: 2.5rem 0;
 }
+
+.prose code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: monospace;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+

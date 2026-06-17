@@ -241,7 +241,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
           <span>4 min read</span>
         </div>
         
-        <h1 className="article-title text-4xl md:text-6xl lg:text-7xl font-bold text-center text-white leading-tight mb-8 md:mb-12 font-serif">
+        <h1 className="article-title text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-center text-white leading-tight mb-8 md:mb-12 font-serif">
           {article.title}
         </h1>
 
@@ -257,10 +257,10 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
       </div>
 
       {/* Main Content & Sidebar */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 pb-16 md:pb-24 grid md:grid-cols-12 gap-6 md:gap-12 relative" ref={articleRef}>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pb-16 md:pb-24 grid lg:grid-cols-12 gap-6 lg:gap-12 relative" ref={articleRef}>
         
         {/* Left Sidebar (Author & Sharing) - Sticky */}
-        <div className="md:col-span-3 hidden md:block">
+        <div className="lg:col-span-3 hidden lg:block">
           <div className="sticky top-32">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#34d399] to-blue-500 flex items-center justify-center text-white font-bold text-xl">
@@ -280,9 +280,9 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
         </div>
 
         {/* Center Content */}
-        <div className="md:col-span-7">
+        <div className="lg:col-span-7 col-span-12">
           {/* Mobile Author & Sharing */}
-          <div className="flex md:hidden items-center justify-between gap-4 mb-10 border-b border-white/10 pb-6">
+          <div className="flex lg:hidden items-center justify-between gap-4 mb-10 border-b border-white/10 pb-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#34d399] to-blue-500 flex items-center justify-center text-white font-bold text-xl">
                 {article.author.charAt(0)}
@@ -325,7 +325,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
         </div>
 
         {/* Right Sidebar (AdSense) */}
-        <div className="md:col-span-2 hidden md:block">
+        <div className="lg:col-span-2 hidden lg:block">
           <div className="sticky top-32">
             <p className="text-[10px] text-center text-[#64748b] uppercase tracking-widest mb-2">Advertisement</p>
             <AdUnit slot="2779071234" format="vertical" style={{ minHeight: "600px" }} />
@@ -339,13 +339,13 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
         <p className="text-[#34d399] font-bold uppercase tracking-widest text-sm mb-4">Read Next</p>
         {nextArticle ? (
           <Link href={`/blog/${nextArticle.slug}`} className="group inline-block max-w-3xl">
-            <h3 className="text-3xl md:text-5xl font-serif text-white group-hover:text-[#34d399] transition-colors leading-tight">
+            <h3 className="text-2xl sm:text-3xl md:text-5xl font-serif text-white group-hover:text-[#34d399] transition-colors leading-tight">
               {nextArticle.title} →
             </h3>
             <p className="text-[#94a3b8] mt-4 text-lg">{nextArticle.excerpt}</p>
           </Link>
         ) : (
-          <Link href="/blog" className="text-3xl md:text-5xl font-serif text-white hover:text-[#34d399] transition-colors inline-block max-w-3xl">
+          <Link href="/blog" className="text-2xl sm:text-3xl md:text-5xl font-serif text-white hover:text-[#34d399] transition-colors inline-block max-w-3xl">
             Explore more articles →
           </Link>
         )}

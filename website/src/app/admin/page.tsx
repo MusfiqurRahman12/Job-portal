@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   } | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper'>('job');
+  const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper' | 'social'>('job');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   
@@ -34,6 +34,155 @@ export default function AdminDashboard() {
   // Image Upload States
   const [jobLogo, setJobLogo] = useState('');
   const [articleImage, setArticleImage] = useState('');
+
+  // Social Marketing State
+  const [socialPosts, setSocialPosts] = useState<any[]>([]);
+  const [socialContent, setSocialContent] = useState('');
+  const [socialPlatforms, setSocialPlatforms] = useState<string[]>([]);
+  const [socialImage, setSocialImage] = useState('');
+  const [socialScheduledAt, setSocialScheduledAt] = useState('');
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [socialRunning, setSocialRunning] = useState(false);
+  const [previewTab, setPreviewTab] = useState<'twitter' | 'linkedin'>('twitter');
+  const [expandedLogs, setExpandedLogs] = useState<number | null>(null);
+
+  const fetchSocialPosts = async () => {
+    try {
+      const res = await fetch('/api/admin/social');
+      const data = await res.json();
+      if (res.ok && data.posts) {
+        setSocialPosts(data.posts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch social posts', err);
+    }
+  };
+
+  const handleConnectPlatform = async (platform: string) => {
+    try {
+      setMessage(`Connecting ${platform}...`);
+      const res = await fetch('/api/admin/social/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.open(data.url, '_blank');
+        setMessage(`Successfully generated connection URL for ${platform}! Please complete authorization in the new tab.`);
+      } else {
+        setMessage(`Connection error: ${data.error || 'Failed to connect'}`);
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    }
+  };
+
+  const handleSocialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (socialPlatforms.length === 0) {
+      setMessage('Error: Please select at least one social platform.');
+      return;
+    }
+    setSocialLoading(true);
+    setMessage('');
+
+    const payload = {
+      content: socialContent,
+      image_url: socialImage,
+      platforms: socialPlatforms,
+      scheduled_at: socialScheduledAt || new Date().toISOString(),
+      status: 'scheduled',
+    };
+
+    try {
+      const res = await fetch('/api/admin/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setMessage('Success! Social post scheduled.');
+        setSocialContent('');
+        setSocialImage('');
+        setSocialPlatforms([]);
+        setSocialScheduledAt('');
+        fetchSocialPosts();
+      } else {
+        setMessage(`Error: ${result.error}`);
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setSocialLoading(false);
+    }
+  };
+
+  const handleTriggerSocialQueue = async () => {
+    setSocialRunning(true);
+    setMessage('Running social posting runner...');
+    try {
+      const res = await fetch('/api/admin/social/run', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage(`Social queue executed. Processed posts count: ${data.processed}`);
+        fetchSocialPosts();
+      } else {
+        setMessage(`Error running scheduler: ${data.error}`);
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setSocialRunning(false);
+    }
+  };
+
+  const handleTriggerSinglePost = async (id: number) => {
+    setMessage(`Publishing post immediately...`);
+    try {
+      const res = await fetch('/api/admin/social/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('Post published successfully!');
+        fetchSocialPosts();
+      } else {
+        setMessage(`Error publishing post: ${data.error}`);
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    }
+  };
+
+  const handleDeleteSocialPost = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this scheduled post?')) return;
+    try {
+      const res = await fetch(`/api/admin/social?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setMessage('Successfully deleted scheduled post.');
+        fetchSocialPosts();
+      } else {
+        const data = await res.json();
+        setMessage(`Error: ${data.error || 'Failed to delete'}`);
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    }
+  };
+
+  const getCharLimitWarning = () => {
+    if (socialPlatforms.includes('twitter') && socialContent.length > 280) {
+      return `⚠️ X / Twitter character limit exceeded (${socialContent.length}/280)`;
+    }
+    return '';
+  };
 
   // Authentication & Session Management
   const checkSession = async () => {
@@ -218,6 +367,13 @@ export default function AdminDashboard() {
     }
   }, [activeTab]);
 
+  // Fetch social posts automatically when the social tab is selected
+  useEffect(() => {
+    if (activeTab === 'social') {
+      fetchSocialPosts();
+    }
+  }, [activeTab]);
+
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-[#06060a] text-white flex flex-col items-center justify-center gap-4">
@@ -367,6 +523,14 @@ export default function AdminDashboard() {
             }`}
           >
             Auto Scraper
+          </button>
+          <button
+            onClick={() => setActiveTab('social')}
+            className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
+              activeTab === 'social' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Social Marketing
           </button>
         </div>
 
@@ -574,6 +738,341 @@ export default function AdminDashboard() {
                             View Log ↗
                           </a>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'social' && (
+            <div className="space-y-8 animate-fade-in text-left">
+              {/* Account Connection Hub */}
+              <div className="bg-[#14141d]/50 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <h3 className="text-lg font-bold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300">
+                  Connect Social Channels
+                </h3>
+                <p className="text-xs text-gray-400 mb-4">Link your channels via secure hosted OAuth handles to publish immediately.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 relative z-10">
+                  {[
+                    { key: 'twitter', label: 'X / Twitter', color: 'bg-black border border-zinc-800 text-white hover:bg-neutral-900' },
+                    { key: 'linkedin', label: 'LinkedIn', color: 'bg-[#0077b5] text-white hover:bg-[#006396]' },
+                    { key: 'instagram', label: 'Instagram', color: 'bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white hover:opacity-90' },
+                    { key: 'tiktok', label: 'TikTok', color: 'bg-black border border-zinc-800 text-[#00f2fe] hover:opacity-95' },
+                    { key: 'threads', label: 'Threads', color: 'bg-zinc-900 border border-zinc-700 text-white hover:bg-zinc-850' },
+                    { key: 'reddit', label: 'Reddit', color: 'bg-[#ff4500] text-white hover:bg-[#e03d00]' },
+                    { key: 'pinterest', label: 'Pinterest', color: 'bg-[#bd081c] text-white hover:bg-[#a30718]' },
+                    { key: 'truthsocial', label: 'Truth Social', color: 'bg-[#be1e2d] text-white hover:bg-[#a61925]' }
+                  ].map((chan) => (
+                    <button
+                      key={chan.key}
+                      type="button"
+                      onClick={() => handleConnectPlatform(chan.key)}
+                      className={`px-3 py-2 text-xs font-semibold rounded-lg shadow transition-all active:scale-[0.98] cursor-pointer ${chan.color}`}
+                    >
+                      Connect {chan.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Composer & Preview Columns */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column: Form Composer */}
+                <div className="lg:col-span-7 space-y-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 bg-teal-400 rounded-full"></span>
+                    Campaign Post Composer
+                  </h3>
+
+                  <form onSubmit={handleSocialSubmit} className="space-y-6">
+                    {/* Platform Selection */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-400 mb-2.5">
+                        Target Platforms (Broadcast everywhere)
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: 'twitter', label: 'X / Twitter', activeClass: 'bg-neutral-800 border-white text-white', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' },
+                          { id: 'linkedin', label: 'LinkedIn', activeClass: 'bg-[#0077b5]/20 border-[#0077b5] text-[#0077b5] font-bold', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' },
+                          { id: 'instagram', label: 'Instagram', activeClass: 'bg-[#e1306c]/20 border-[#e1306c] text-[#e1306c] font-bold', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' },
+                          { id: 'tiktok', label: 'TikTok', activeClass: 'bg-[#ff0050]/20 border-[#ff0050] text-[#ff0050] font-bold', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' },
+                          { id: 'threads', label: 'Threads', activeClass: 'bg-neutral-100 text-black border-neutral-100 font-bold', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' },
+                          { id: 'reddit', label: 'Reddit', activeClass: 'bg-[#ff4500]/20 border-[#ff4500] text-[#ff4500] font-bold', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' },
+                          { id: 'pinterest', label: 'Pinterest', activeClass: 'bg-[#bd081c]/20 border-[#bd081c] text-[#bd081c] font-bold', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' },
+                          { id: 'truthsocial', label: 'Truth Social', activeClass: 'bg-[#be1e2d]/20 border-[#be1e2d] text-[#be1e2d] font-bold', inactiveClass: 'bg-[#14141d] border-gray-800 text-gray-400 hover:border-gray-700' }
+                        ].map((plat) => {
+                          const isActive = socialPlatforms.includes(plat.id);
+                          return (
+                            <button
+                              key={plat.id}
+                              type="button"
+                              onClick={() => {
+                                if (isActive) {
+                                  setSocialPlatforms(socialPlatforms.filter((p) => p !== plat.id));
+                                } else {
+                                  setSocialPlatforms([...socialPlatforms, plat.id]);
+                                }
+                              }}
+                              className={`px-3.5 py-1.5 rounded-full border text-xs transition-all active:scale-[0.96] cursor-pointer ${isActive ? plat.activeClass : plat.inactiveClass}`}
+                            >
+                              {plat.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Content Input */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-sm font-medium text-gray-400">Post Copy</label>
+                        <span className="text-xs text-gray-500">{socialContent.length} chars</span>
+                      </div>
+                      <textarea
+                        required
+                        value={socialContent}
+                        onChange={(e) => setSocialContent(e.target.value)}
+                        rows={5}
+                        className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 text-sm focus:ring-1 focus:ring-teal-500"
+                        placeholder="Write your campaign message here..."
+                      ></textarea>
+                      {getCharLimitWarning() && (
+                        <p className="text-amber-400 text-xs mt-1">{getCharLimitWarning()}</p>
+                      )}
+                    </div>
+
+                    {/* Media Image URL */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Attachment Image URL (Optional)</label>
+                      <input
+                        type="url"
+                        value={socialImage}
+                        onChange={(e) => setSocialImage(e.target.value)}
+                        className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 text-sm focus:ring-1 focus:ring-teal-500"
+                        placeholder="https://images.unsplash.com/photo-..."
+                      />
+                    </div>
+
+                    {/* Date scheduling */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Schedule Publication Time (Optional)</label>
+                      <input
+                        type="datetime-local"
+                        value={socialScheduledAt}
+                        onChange={(e) => setSocialScheduledAt(e.target.value)}
+                        className="w-full bg-[#1a1a24] border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 text-sm focus:ring-1 focus:ring-teal-500"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">Leave empty to deploy post immediately (Publish Now).</p>
+                    </div>
+
+                    <button
+                      disabled={socialLoading}
+                      type="submit"
+                      className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-teal-600/20 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                    >
+                      {socialLoading ? 'Composing Campaign...' : socialScheduledAt ? 'Schedule Marketing Campaign' : 'Publish Marketing Campaign Now'}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Right Column: Live Previews */}
+                <div className="lg:col-span-5 space-y-4">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Live Post Preview</h3>
+                  <div className="border border-gray-800 bg-[#06060a] rounded-xl overflow-hidden shadow-2xl">
+                    <div className="flex bg-[#0f0f15] border-b border-gray-800 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewTab('twitter')}
+                        className={`flex-1 py-3 font-semibold transition-colors border-b-2 ${previewTab === 'twitter' ? 'border-teal-500 text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                      >
+                        X / Twitter Feed
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewTab('linkedin')}
+                        className={`flex-1 py-3 font-semibold transition-colors border-b-2 ${previewTab === 'linkedin' ? 'border-teal-500 text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                      >
+                        LinkedIn Feed
+                      </button>
+                    </div>
+
+                    <div className="p-6">
+                      {previewTab === 'twitter' ? (
+                        /* Twitter Mockup */
+                        <div className="flex gap-3 text-[14px] leading-snug">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center font-bold text-black text-sm flex-shrink-0">
+                            FT
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-white">FutureTalent</span>
+                              <span className="text-gray-500">@FutureTalent_HQ</span>
+                              <span className="text-gray-500">· 1s</span>
+                            </div>
+                            <p className="text-white mt-1 whitespace-pre-line break-words">
+                              {socialContent || 'Your campaign message copy goes here. Toggle checklist platforms and write above to preview.'}
+                            </p>
+                            {socialImage && (
+                              <div className="mt-3 border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950">
+                                <img src={socialImage} alt="Attachment Preview" className="w-full h-48 object-cover" />
+                              </div>
+                            )}
+                            {/* Retweet/Like icons */}
+                            <div className="flex justify-between max-w-md text-gray-500 text-xs mt-4">
+                              <span className="flex items-center gap-1">💬 0</span>
+                              <span className="flex items-center gap-1">🔁 0</span>
+                              <span className="flex items-center gap-1">❤️ 0</span>
+                              <span className="flex items-center gap-1">📊 0</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        /* LinkedIn Mockup */
+                        <div className="text-[14px]">
+                          <div className="flex gap-2.5 mb-3">
+                            <div className="w-12 h-12 rounded bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center font-bold text-black text-lg flex-shrink-0">
+                              FT
+                            </div>
+                            <div>
+                              <div className="font-bold text-white hover:text-blue-400 hover:underline cursor-pointer">FutureTalent Portal</div>
+                              <div className="text-[11px] text-gray-500">22,048 followers</div>
+                              <div className="text-[11px] text-gray-500 flex items-center gap-1">1h · 🌐</div>
+                            </div>
+                          </div>
+                          <p className="text-white whitespace-pre-line break-words mb-3 leading-relaxed">
+                            {socialContent || 'Your campaign message copy goes here. Toggle checklist platforms and write above to preview.'}
+                          </p>
+                          {socialImage ? (
+                            <div className="border border-zinc-800 rounded overflow-hidden bg-zinc-950">
+                              <img src={socialImage} alt="Attachment Preview" className="w-full h-56 object-cover" />
+                              <div className="p-3 bg-zinc-900 border-t border-zinc-800">
+                                <div className="font-bold text-[10px] text-zinc-400 uppercase tracking-wider">FutureTalent.online</div>
+                                <div className="text-xs text-white font-semibold mt-0.5">Elevate your remote talent recruitment</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="h-px bg-zinc-800 my-2" />
+                          )}
+                          {/* LinkedIn engagement icons */}
+                          <div className="flex justify-between border-t border-zinc-900 pt-3 text-gray-500 text-xs mt-3">
+                            <span className="flex items-center gap-1.5 cursor-pointer hover:bg-white/5 py-1 px-2 rounded">👍 Like</span>
+                            <span className="flex items-center gap-1.5 cursor-pointer hover:bg-white/5 py-1 px-2 rounded">💬 Comment</span>
+                            <span className="flex items-center gap-1.5 cursor-pointer hover:bg-white/5 py-1 px-2 rounded">🔁 Repost</span>
+                            <span className="flex items-center gap-1.5 cursor-pointer hover:bg-white/5 py-1 px-2 rounded">📤 Send</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status / History List */}
+              <div className="border-t border-gray-800 pt-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-teal-400 rounded-full animate-pulse"></span>
+                      Campaign Queue & Execution Audits
+                    </h3>
+                    <p className="text-xs text-gray-400">Monitor scheduler status, trigger execution sweeps, and view Zernio API logs.</p>
+                  </div>
+                  <button
+                    onClick={handleTriggerSocialQueue}
+                    disabled={socialRunning}
+                    className="bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2.5 px-6 rounded-lg text-sm shadow transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  >
+                    {socialRunning ? 'Sweeping Social Queue...' : 'Sweep Scheduled Queue Now'}
+                  </button>
+                </div>
+
+                {socialPosts.length === 0 ? (
+                  <div className="text-center py-10 bg-[#14141d]/30 border border-gray-800 rounded-xl">
+                    <p className="text-gray-500 italic text-sm">No campaigns scheduled or logs found. Start composing above!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {socialPosts.map((post) => (
+                      <div key={post.id} className="bg-[#14141d]/70 border border-gray-800/80 rounded-xl p-5 shadow transition-all hover:border-gray-700/60 flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md ${
+                              post.status === 'posted' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/30' :
+                              post.status === 'failed' ? 'bg-red-950/60 text-red-400 border border-red-800/30' :
+                              post.status === 'scheduled' ? 'bg-blue-950/60 text-blue-400 border border-blue-800/30' :
+                              'bg-neutral-850 text-gray-400 border border-zinc-700'
+                            }`}>
+                              {post.status}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Scheduled: {new Date(post.scheduled_at).toLocaleString()}
+                            </span>
+                            {post.posted_at && (
+                              <span className="text-xs text-emerald-500">
+                                · Posted: {new Date(post.posted_at).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {post.status === 'scheduled' && (
+                              <button
+                                onClick={() => handleTriggerSinglePost(post.id)}
+                                className="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded text-xs font-semibold transition-all cursor-pointer"
+                              >
+                                Post Now
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteSocialPost(post.id)}
+                              className="px-2.5 py-1.5 bg-red-950/45 hover:bg-red-900/50 border border-red-800/40 text-red-200 rounded text-xs font-semibold transition-all cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-white text-sm whitespace-pre-line break-words leading-relaxed bg-black/20 p-3 rounded-lg border border-zinc-800/50">
+                            {post.content}
+                          </p>
+                          {post.image_url && (
+                            <a href={post.image_url} target="_blank" rel="noreferrer" className="text-xs text-teal-400 hover:underline mt-2 inline-block">
+                              🔗 Image Attachment: {post.image_url.substring(0, 60)}...
+                            </a>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          <span className="text-xs text-gray-500 mr-1 font-semibold">Targets:</span>
+                          {post.platforms.map((plat: string) => (
+                            <span key={plat} className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-900 text-zinc-300 border border-zinc-800">
+                              {plat}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Logs section */}
+                        {post.logs && (
+                          <div className="border-t border-zinc-800/60 pt-3">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedLogs(expandedLogs === post.id ? null : post.id)}
+                              className="text-xs text-gray-500 hover:text-white flex items-center gap-1 transition-colors"
+                            >
+                              <span>{expandedLogs === post.id ? '▼ Hide Connection Logs' : '► View Connection Logs'}</span>
+                            </button>
+                            
+                            {expandedLogs === post.id && (
+                              <pre className="mt-3 p-4 bg-zinc-950 border border-zinc-900 rounded-lg text-[10px] text-zinc-400 font-mono overflow-x-auto whitespace-pre leading-relaxed shadow-inner max-h-60 overflow-y-auto animate-fade-in">
+                                {post.logs}
+                              </pre>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

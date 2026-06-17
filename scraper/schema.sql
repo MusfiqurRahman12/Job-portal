@@ -57,14 +57,16 @@ CREATE INDEX IF NOT EXISTS idx_news_slug ON news(slug);
 CREATE INDEX IF NOT EXISTS idx_news_category ON news(category);
 CREATE INDEX IF NOT EXISTS idx_news_published_at ON news(published_at DESC);
 -- View for category counts
-CREATE OR REPLACE VIEW category_counts AS
+DROP VIEW IF EXISTS category_counts CASCADE;
+CREATE OR REPLACE VIEW category_counts WITH (security_invoker = true) AS
 SELECT category as name, COUNT(*)::int as count
 FROM jobs
 WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP
 GROUP BY category;
 
 -- View for system statistics (total scraped/created and active counts)
-CREATE OR REPLACE VIEW system_stats_view AS
+DROP VIEW IF EXISTS system_stats_view CASCADE;
+CREATE OR REPLACE VIEW system_stats_view WITH (security_invoker = true) AS
 SELECT 
     (SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::int FROM jobs_id_seq) as total_jobs,
     (SELECT COUNT(*)::int FROM jobs WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP) as active_jobs,
@@ -105,7 +107,8 @@ CREATE TABLE IF NOT EXISTS scraper_runs (
 );
 
 -- View for company profiles (unique companies with active job counts)
-CREATE OR REPLACE VIEW company_profiles AS
+DROP VIEW IF EXISTS company_profiles CASCADE;
+CREATE OR REPLACE VIEW company_profiles WITH (security_invoker = true) AS
 SELECT 
     company as name,
     MAX(company_logo) as logo,
@@ -113,5 +116,46 @@ SELECT
 FROM jobs
 WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP
 GROUP BY company;
+
+-- Social marketing posts table
+CREATE TABLE IF NOT EXISTS social_posts (
+    id SERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    image_url TEXT DEFAULT '',
+    platforms TEXT[] DEFAULT '{}',
+    scheduled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    posted_at TIMESTAMP,
+    status TEXT DEFAULT 'draft', -- 'draft', 'scheduled', 'posted', 'failed'
+    logs TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_social_posts_status ON social_posts(status);
+CREATE INDEX IF NOT EXISTS idx_social_posts_scheduled ON social_posts(scheduled_at);
+
+-- Enable Row Level Security (RLS) on public tables to satisfy linter warnings
+ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE news ENABLE ROW LEVEL SECURITY;
+
+-- Add SELECT policies to allow public reading of active jobs and articles
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'jobs' AND policyname = 'Allow public read access on jobs'
+    ) THEN
+        CREATE POLICY "Allow public read access on jobs" ON jobs FOR SELECT USING (true);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'news' AND policyname = 'Allow public read access on news'
+    ) THEN
+        CREATE POLICY "Allow public read access on news" ON news FOR SELECT USING (true);
+    END IF;
+END
+$$;
+
+
 
 
