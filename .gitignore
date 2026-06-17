@@ -38,3 +38,4 @@ scraper/google-credentials.json
 
 # Binaries
 scraper-app
+.vercel
