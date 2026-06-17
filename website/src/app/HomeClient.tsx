@@ -7,6 +7,7 @@ import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryC
 import { supabase } from "@/lib/supabaseClient";
 import AdUnit from "@/components/AdUnit";
 import CompanyLogo from "@/components/CompanyLogo";
+import { useTypingPlaceholder } from "@/hooks/useTypingPlaceholder";
 
 /* ═══════════════════════════════════════════════════════
    MOCK DATA — Replace with API calls to your Go backend
@@ -203,6 +204,19 @@ function AnimatedStat({ value, suffix = "" }: { value: number; suffix?: string }
 export default function Home() {
   const router = useRouter();
   const heroRef = useRef<HTMLDivElement>(null);
+
+  const searchPlaceholderProps = useTypingPlaceholder({
+    strings: [
+      "Search for React Developer...",
+      "Search for Product Designer...",
+      "Search for DevOps Engineer...",
+      "Search for Marketing Manager...",
+      "Search for Remote Software Engineer...",
+      "Search for Product Manager...",
+      "Search for Data Scientist...",
+    ],
+    staticPlaceholder: "Search roles, companies, or skills...",
+  });
   const tickerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
@@ -546,8 +560,8 @@ export default function Home() {
             <input
               type="text"
               className="search-bar"
-              placeholder="Search roles, companies, or skills..."
               id="search-input"
+              {...searchPlaceholderProps}
             />
             <button type="submit" className="search-btn" id="search-btn">
               Search Jobs

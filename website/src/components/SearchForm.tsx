@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTypingPlaceholder } from "@/hooks/useTypingPlaceholder";
 
 export default function SearchForm() {
   const router = useRouter();
@@ -10,6 +11,20 @@ export default function SearchForm() {
   const currentCategory = searchParams.get("category") || "";
   
   const [input, setInput] = useState(currentSearch);
+
+  const searchPlaceholderProps = useTypingPlaceholder({
+    strings: [
+      "Search for React Developer...",
+      "Search for Product Designer...",
+      "Search for DevOps Engineer...",
+      "Search for Marketing Manager...",
+      "Search for Remote Software Engineer...",
+      "Search for Product Manager...",
+      "Search for Data Scientist...",
+    ],
+    staticPlaceholder: "Search role, position, skills, experience...",
+    value: input,
+  });
 
   // Sync input field value when search query changes (e.g. back navigation)
   useEffect(() => {
@@ -37,9 +52,15 @@ export default function SearchForm() {
       <input
         type="text"
         className="search-bar"
-        placeholder="Search role, position, skills, experience..."
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        ref={searchPlaceholderProps.ref}
+        placeholder={searchPlaceholderProps.placeholder}
+        onFocus={searchPlaceholderProps.onFocus}
+        onBlur={searchPlaceholderProps.onBlur}
+        onChange={(e) => {
+          setInput(e.target.value);
+          searchPlaceholderProps.onChange(e);
+        }}
       />
       <button type="submit" className="search-btn">Search</button>
     </form>
