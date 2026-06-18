@@ -34,6 +34,12 @@ export function useTypingPlaceholder({
     isVisible: false,
   });
 
+  // Keep latest configuration in ref to avoid loop restarts on parent re-renders
+  const configRef = useRef({ strings, staticPlaceholder, speed, backSpeed, delay });
+  useEffect(() => {
+    configRef.current = { strings, staticPlaceholder, speed, backSpeed, delay };
+  }, [strings, staticPlaceholder, speed, backSpeed, delay]);
+
   // Keep focus state updated in ref
   useEffect(() => {
     stateRef.current.isFocused = isFocused;
@@ -76,7 +82,7 @@ export function useTypingPlaceholder({
     };
   }, []);
 
-  // Animation Loop Effect
+  // Animation Loop Effect (runs once on mount)
   useEffect(() => {
     let timerId: NodeJS.Timeout;
 
@@ -85,6 +91,7 @@ export function useTypingPlaceholder({
     const startTimeout = setTimeout(() => {
       const tick = () => {
         const state = stateRef.current;
+        const config = configRef.current;
 
         // Skip animating when hidden, tab out of focus, focused, or contains text
         if (
@@ -97,7 +104,7 @@ export function useTypingPlaceholder({
           return;
         }
 
-        const currentString = strings[state.stringIndex % strings.length];
+        const currentString = config.strings[state.stringIndex % config.strings.length];
         const stringLength = currentString.length || 1;
 
         if (state.isDeleting) {
@@ -109,7 +116,7 @@ export function useTypingPlaceholder({
         }
 
         // Show animated typing placeholder, fallback to static if empty
-        setPlaceholder(state.text || staticPlaceholder);
+        setPlaceholder(state.text || config.staticPlaceholder);
 
         // Dynamically compute character interval to type the entire string in exactly 450ms (0.45s)
         // and delete it in exactly 225ms (0.225s)
@@ -119,7 +126,7 @@ export function useTypingPlaceholder({
         }
 
         if (!state.isDeleting && state.text === currentString) {
-          typeSpeed = delay; // Pause at full word
+          typeSpeed = config.delay; // Pause at full word
           state.isDeleting = true;
         } else if (state.isDeleting && state.text === "") {
           state.isDeleting = false;
@@ -137,7 +144,7 @@ export function useTypingPlaceholder({
       clearTimeout(startTimeout);
       clearTimeout(timerId);
     };
-  }, [strings, staticPlaceholder, speed, backSpeed, delay]);
+  }, []);
 
   const activePlaceholder = isFocused || hasValue ? staticPlaceholder : placeholder;
 
