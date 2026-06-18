@@ -111,11 +111,11 @@ export function useTypingPlaceholder({
         // Show animated typing placeholder, fallback to static if empty
         setPlaceholder(state.text || staticPlaceholder);
 
-        // Dynamically compute character interval to type the entire string in exactly 550ms (0.55s)
-        // and delete it in exactly 275ms (0.275s)
-        let typeSpeed = 550 / stringLength;
+        // Dynamically compute character interval to type the entire string in exactly 450ms (0.45s)
+        // and delete it in exactly 225ms (0.225s)
+        let typeSpeed = 450 / stringLength;
         if (state.isDeleting) {
-          typeSpeed = 275 / stringLength;
+          typeSpeed = 225 / stringLength;
         }
 
         if (!state.isDeleting && state.text === currentString) {
