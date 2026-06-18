@@ -98,6 +98,7 @@ export function useTypingPlaceholder({
         }
 
         const currentString = strings[state.stringIndex % strings.length];
+        const stringLength = currentString.length || 1;
 
         if (state.isDeleting) {
           state.text = currentString.substring(0, state.charIndex - 1);
@@ -110,9 +111,11 @@ export function useTypingPlaceholder({
         // Show animated typing placeholder, fallback to static if empty
         setPlaceholder(state.text || staticPlaceholder);
 
-        let typeSpeed = speed;
+        // Dynamically compute character interval to type the entire string in exactly 550ms (0.55s)
+        // and delete it in exactly 275ms (0.275s)
+        let typeSpeed = 550 / stringLength;
         if (state.isDeleting) {
-          typeSpeed = backSpeed;
+          typeSpeed = 275 / stringLength;
         }
 
         if (!state.isDeleting && state.text === currentString) {
