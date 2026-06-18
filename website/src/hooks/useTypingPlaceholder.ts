@@ -32,6 +32,8 @@ export function useTypingPlaceholder({
     isFocused: false,
     hasValue: !!value,
     isVisible: false,
+    pauseTicksCount: 0,
+    showCursor: true,
   });
 
   // Keep latest configuration in ref to avoid loop restarts on parent re-renders
@@ -107,34 +109,47 @@ export function useTypingPlaceholder({
         const currentString = config.strings[state.stringIndex % config.strings.length];
         const stringLength = currentString.length || 1;
 
+        let nextTickDelay = 450 / stringLength;
+
         if (state.isDeleting) {
+          // Deleting phase: delete character and show solid cursor
           state.text = currentString.substring(0, state.charIndex - 1);
           state.charIndex--;
-        } else {
+          
+          setPlaceholder(state.text ? state.text + "|" : config.staticPlaceholder);
+          nextTickDelay = 225 / stringLength;
+          
+          if (state.text === "") {
+            state.isDeleting = false;
+            state.stringIndex++;
+            nextTickDelay = 200; // Pause before typing the next word
+          }
+        } else if (state.charIndex < currentString.length) {
+          // Typing phase: add character, solid cursor, and random human jitter
           state.text = currentString.substring(0, state.charIndex + 1);
           state.charIndex++;
+          
+          setPlaceholder(state.text + "|");
+          // Multiplies the base typing speed by a random jitter factor between 0.85 and 1.15
+          nextTickDelay = (450 / stringLength) * (0.85 + Math.random() * 0.3);
+        } else {
+          // Pause phase at full word: blink the cursor every 150ms
+          state.showCursor = !state.showCursor;
+          setPlaceholder(currentString + (state.showCursor ? "|" : ""));
+          
+          state.pauseTicksCount++;
+          nextTickDelay = 150; // Cursor blink interval
+          
+          const maxTicks = Math.round(config.delay / 150);
+          if (state.pauseTicksCount >= maxTicks) {
+            state.pauseTicksCount = 0;
+            state.isDeleting = true;
+            state.showCursor = true;
+            nextTickDelay = 150;
+          }
         }
 
-        // Show animated typing placeholder, fallback to static if empty
-        setPlaceholder(state.text || config.staticPlaceholder);
-
-        // Dynamically compute character interval to type the entire string in exactly 450ms (0.45s)
-        // and delete it in exactly 225ms (0.225s)
-        let typeSpeed = 450 / stringLength;
-        if (state.isDeleting) {
-          typeSpeed = 225 / stringLength;
-        }
-
-        if (!state.isDeleting && state.text === currentString) {
-          typeSpeed = config.delay; // Pause at full word
-          state.isDeleting = true;
-        } else if (state.isDeleting && state.text === "") {
-          state.isDeleting = false;
-          state.stringIndex++;
-          typeSpeed = 120; // Pause before typing next word
-        }
-
-        timerId = setTimeout(tick, typeSpeed);
+        timerId = setTimeout(tick, nextTickDelay);
       };
 
       tick();
