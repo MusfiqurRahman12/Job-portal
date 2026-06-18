@@ -117,7 +117,7 @@ export function useTypingPlaceholder({
           state.charIndex--;
           
           setPlaceholder(state.text ? state.text + "|" : config.staticPlaceholder);
-          nextTickDelay = 350 / stringLength;
+          nextTickDelay = 550 / stringLength;
           
           if (state.text === "") {
             state.isDeleting = false;
