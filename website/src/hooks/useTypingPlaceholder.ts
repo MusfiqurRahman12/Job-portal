@@ -17,7 +17,7 @@ export function useTypingPlaceholder({
   value = "",
   speed = 25,
   backSpeed = 12,
-  delay = 600,
+  delay = 1000,
 }: UseTypingPlaceholderProps) {
   const [placeholder, setPlaceholder] = useState(staticPlaceholder);
   const [isFocused, setIsFocused] = useState(false);
@@ -109,7 +109,7 @@ export function useTypingPlaceholder({
         const currentString = config.strings[state.stringIndex % config.strings.length];
         const stringLength = currentString.length || 1;
 
-        let nextTickDelay = 450 / stringLength;
+        let nextTickDelay = 700 / stringLength;
 
         if (state.isDeleting) {
           // Deleting phase: delete character and show solid cursor
@@ -117,7 +117,7 @@ export function useTypingPlaceholder({
           state.charIndex--;
           
           setPlaceholder(state.text ? state.text + "|" : config.staticPlaceholder);
-          nextTickDelay = 225 / stringLength;
+          nextTickDelay = 350 / stringLength;
           
           if (state.text === "") {
             state.isDeleting = false;
@@ -131,7 +131,7 @@ export function useTypingPlaceholder({
           
           setPlaceholder(state.text + "|");
           // Multiplies the base typing speed by a random jitter factor between 0.85 and 1.15
-          nextTickDelay = (450 / stringLength) * (0.85 + Math.random() * 0.3);
+          nextTickDelay = (700 / stringLength) * (0.85 + Math.random() * 0.3);
         } else {
           // Pause phase at full word: blink the cursor every 150ms
           state.showCursor = !state.showCursor;
