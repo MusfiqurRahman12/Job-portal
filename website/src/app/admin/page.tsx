@@ -23,11 +23,7 @@ export default function AdminDashboard() {
   } | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
-<<<<<<< HEAD
-  const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper' | 'social'>('job');
-=======
-  const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper' | 'settings'>('job');
->>>>>>> 21ad21f (feat: implement admin scraper settings panel & toggle control)
+  const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper' | 'social' | 'settings'>('job');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   
@@ -35,7 +31,6 @@ export default function AdminDashboard() {
   const [runs, setRuns] = useState<any[]>([]);
   const [scraperLoading, setScraperLoading] = useState(false);
 
-<<<<<<< HEAD
   // Image Upload States
   const [jobLogo, setJobLogo] = useState('');
   const [articleImage, setArticleImage] = useState('');
@@ -219,7 +214,7 @@ export default function AdminDashboard() {
     }
     return '';
   };
-=======
+
   // Settings State
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -227,7 +222,6 @@ export default function AdminDashboard() {
   const [enableArticleScraping, setEnableArticleScraping] = useState(true);
   const [articleAuthor, setArticleAuthor] = useState('FutureTalent');
   const [articleSeoFormat, setArticleSeoFormat] = useState(true);
->>>>>>> 21ad21f (feat: implement admin scraper settings panel & toggle control)
 
   // Authentication & Session Management
   const checkSession = async () => {
@@ -622,21 +616,20 @@ export default function AdminDashboard() {
             Auto Scraper
           </button>
           <button
-<<<<<<< HEAD
             onClick={() => setActiveTab('social')}
             className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
               activeTab === 'social' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             Social Marketing
-=======
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
             className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
               activeTab === 'settings' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             ⚙️ Settings
->>>>>>> 21ad21f (feat: implement admin scraper settings panel & toggle control)
           </button>
         </div>
 
