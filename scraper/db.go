@@ -564,4 +564,39 @@ func (db *DB) GetNextLocalRunNumber() (int, error) {
 	return maxNum + 1, nil
 }
 
+// GetScraperSettings fetches all admin-controlled scraper settings as a key-value map.
+// Returns defaults if the table doesn't exist or is empty.
+func (db *DB) GetScraperSettings() (map[string]string, error) {
+	defaults := map[string]string{
+		"enable_job_scraping":     "true",
+		"enable_article_scraping": "true",
+		"article_author":          "FutureTalent",
+		"article_seo_format":      "true",
+	}
 
+	rows, err := db.conn.Query("SELECT key, value FROM scraper_settings")
+	if err != nil {
+		// If table doesn't exist yet, return safe defaults
+		log.Printf("[Settings] Could not read scraper_settings (table may not exist yet): %v", err)
+		return defaults, nil
+	}
+	defer rows.Close()
+
+	settings := make(map[string]string)
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			continue
+		}
+		settings[key] = value
+	}
+
+	// Merge defaults for any missing keys
+	for k, v := range defaults {
+		if _, exists := settings[k]; !exists {
+			settings[k] = v
+		}
+	}
+
+	return settings, nil
+}

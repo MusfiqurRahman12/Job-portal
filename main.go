@@ -100,9 +100,16 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine.AddScraper(scraper.NewRSSJobScraper("GolangProjects", "https://www.golangprojects.com/rss.xml"))
 	engine.AddScraper(scraper.NewRSSJobScraper("JobsCollider", "https://jobscollider.com/remote-jobs.rss"))
 
-	// Register all news/blog RSS scrapers
-	engine.AddNewsScraper(scraper.NewRSSScraper("Sorry I Was On Mute", "https://sorryonmute.com/feed/"))
+	// Register all news/blog RSS scrapers — more sources = richer AI rewrite content
 	engine.AddNewsScraper(scraper.NewRSSScraper("TechCrunch", "https://techcrunch.com/feed/"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Sorry I Was On Mute", "https://sorryonmute.com/feed/"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("The Verge", "https://www.theverge.com/rss/index.xml"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Wired", "https://www.wired.com/feed/rss"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("MIT Tech Review", "https://www.technologyreview.com/feed/"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Dev.to", "https://dev.to/feed"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Fast Company", "https://www.fastcompany.com/technology/rss"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Harvard Business Review", "https://feeds.hbr.org/harvardbusiness"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"))
 
 	engine.Run()
 	log.Println("✅ Scrape cycle complete")

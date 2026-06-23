@@ -225,33 +225,41 @@ func (ai *AIService) OptimizeNews(art *shared.News) error {
 
 	log.Printf("[AI] Optimizing news article: %s", art.Title)
 
-	prompt := fmt.Sprintf(`You are an expert remote work and tech industry news editor.
-Analyze the following raw article details:
+	prompt := fmt.Sprintf(`You are a senior editor and storyteller at FutureTalents — a leading platform for remote jobs and tech careers.
+Analyze the following raw article:
 Title: %s
 Source Snippet: %s
 
-Your job is to rewrite this raw information into a premium, engaging, and professional tech blog/news article (approximately 200-300 words).
-Ensure the tone is motivating, professional, and SEO-optimized.
-Format the article body ('content') using beautiful Markdown (headers, bolding, lists). 
+Your job is to transform this raw information into a compelling, story-driven blog post that reads like it was written by a real human expert.
 
-Also, classify the article into exactly ONE of the following categories:
-- "Remote Work"
-- "Tech"
-- "Career"
-- "Productivity"
-- "Future of Work"
+STORYTELLING RULES (MANDATORY):
+- Open with a vivid real-world scenario or mini-story about a real person (e.g., "Meet Aisha, a software engineer in Lagos who quit her 9-to-5 last year and..."). Make readers feel seen.
+- Include at least 2 specific real-life examples, named companies, or cited industry data points to build credibility.
+- Write in a warm, conversational, first-person-plural voice ("We all know the feeling...", "Here's what the data actually shows...").
+- End with a powerful call-to-action or memorable takeaway line.
 
-Write a compelling 1-2 sentence excerpt that acts as an eye-catching summary hook.
+FORMATTING RULES (MANDATORY):
+- Use # (H1) for the opening pull-quote or bold first hook line (one time only, at the very top)
+- Use ## (H2) for all major section headings (minimum 3 sections)
+- Use ### (H3) for sub-points or examples within sections
+- Use **bold** for key terms and statistics
+- Use bullet lists sparingly — only for genuine lists, not as lazy structure
+- Target 550-700 words
 
-You MUST respond in valid JSON format matching this exact schema:
+SEO & CTR RULES:
+- The title must use power words: numbers ("7 Reasons..."), curiosity gaps ("The Truth About..."), or strong emotion ("Why Every Developer Should...")
+- Write a 2-sentence excerpt that creates urgency and makes readers click
+- Classify into exactly ONE: Remote Work, Tech, Career, Productivity, Future of Work
+
+You MUST respond in valid JSON:
 {
-  "title": "An SEO-friendly, clean, and catchy article title",
-  "category": "One of the 5 categories listed above",
-  "excerpt": "Compelling 1-2 sentence hook summary",
-  "content": "Full rewritten article content in markdown format"
+  "title": "High-CTR, story-worthy title",
+  "category": "One of the 5 categories",
+  "excerpt": "2-sentence compelling hook",
+  "content": "Full story-mode article in markdown with # H1 hook, ## H2 sections, ### H3 sub-points"
 }
 
-Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JSON object.`, art.Title, art.Content)
+Return ONLY the JSON object. Do NOT wrap in backticks.`, art.Title, art.Content)
 
 	genConfig := map[string]interface{}{
 		"temperature":      0.7,
@@ -416,15 +424,52 @@ type AIArticle struct {
 }
 
 // OptimizeNewsBatch rewrites multiple news snippets in a single API call
-func (ai *AIService) OptimizeNewsBatch(articles []*shared.News) error {
+func (ai *AIService) OptimizeNewsBatch(articles []*shared.News, seoFormat bool) error {
 	if len(ai.apiKeys) == 0 || len(articles) == 0 {
 		return nil
 	}
 
-	log.Printf("[AI] Batch optimizing %d news articles...", len(articles))
+	log.Printf("[AI] Batch optimizing %d news articles (SEO format=%v)...", len(articles), seoFormat)
 
 	var sb strings.Builder
-	sb.WriteString("Rewrite each article snippet into a ~200 word professional tech blog post. Classify into one of: Remote Work, Tech, Career, Productivity, Future of Work. Respond with a JSON array of objects with keys: title, category, excerpt, content.\n")
+	sb.WriteString(`You are a senior storytelling editor at FutureTalents — a platform for remote jobs and tech careers.
+For each article snippet below, write a compelling, story-driven blog post that feels human, relatable, and authoritative.
+
+STORYTELLING RULES (MANDATORY FOR ALL ARTICLES):
+- Open each article with a vivid real-world scenario featuring a named fictional but believable person (e.g., "Meet James, a backend developer in Manila who..."). This is the human hook.
+- Include at least 2 specific real-life examples: named companies, actual statistics, or real industry events.
+- Write in a warm, confident editorial voice. Avoid robotic summaries — this should read like a feature in a tech magazine.
+- End with a memorable takeaway or actionable tip.
+
+FORMATTING RULES (MANDATORY FOR ALL ARTICLES):
+- # (H1): One bold opening hook/pull-quote at the top of the article
+- ## (H2): Minimum 3 major section headings per article
+- ### (H3): Sub-points or named examples within sections
+- **bold** important stats and key phrases
+- Target 550-700 words per article
+`)
+
+	// Inject extra SEO heading enforcement if enabled in admin settings
+	if seoFormat {
+		sb.WriteString(`
+CRITICAL SEO FORMAT REQUIREMENT:
+You MUST structure the article body using clean, hierarchical SEO headings:
+- Exactly 1× # (H1) as the opening hook line
+- At least 3× ## (H2) for major sections
+- At least 2× ### (H3) for sub-points within sections
+Google prioritizes content with clear heading hierarchy for featured snippets and rich results.
+`)
+	}
+
+	sb.WriteString(`
+SEO & CTR RULES:
+- Titles must use power words: numbers, curiosity gaps, or strong emotional language
+- Excerpt must be 2 punchy sentences that create urgency
+- Classify each into ONE of: Remote Work, Tech, Career, Productivity, Future of Work
+
+Respond with a JSON array of objects with keys: title, category, excerpt, content.
+Do NOT wrap in backticks. Return ONLY the JSON array.
+`)
 
 	for i, art := range articles {
 		snippet := art.Content
@@ -503,7 +548,7 @@ type GeneratedArticle struct {
 }
 
 // GenerateOriginalArticles creates completely original articles using Gemini, inspired by recent job context
-func (ai *AIService) GenerateOriginalArticles(jobsContext []shared.Job, count int) ([]shared.News, error) {
+func (ai *AIService) GenerateOriginalArticles(jobsContext []shared.Job, count int, seoFormat bool) ([]shared.News, error) {
 	if len(ai.apiKeys) == 0 {
 		return nil, fmt.Errorf("no AI keys configured")
 	}
@@ -511,17 +556,72 @@ func (ai *AIService) GenerateOriginalArticles(jobsContext []shared.Job, count in
 	log.Printf("[AI] Generating %d original articles based on %d recent jobs context...", count, len(jobsContext))
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(`You are an expert tech, career, and remote-work blogger.
-Your task is to write exactly %d highly engaging, completely original articles. 
-Write in a "story mode" and human-like tone designed to attract readers and build SEO authority.
+	sb.WriteString(fmt.Sprintf(`You are a senior editorial writer and storyteller at FutureTalents.
+Your task is to write exactly %d highly compelling, story-driven, original blog articles.
 
-CRUCIAL AD SENSE POLICY INSTRUCTIONS:
-- You MUST adhere strictly to Google AdSense Publisher Policies and Google Search Spam Policies.
-- The content MUST provide high unique value and demonstrate E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness).
-- Do NOT generate clickbait, deceptive, or low-quality thin content. 
-- Ensure the content is safe for all audiences (no prohibited content, violence, or profanity).
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STORYTELLING RULES — MANDATORY FOR EVERY ARTICLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-You should draw loose inspiration from the following recent jobs posted on our platform, but DO NOT just list the jobs. Instead, write about industry trends, career advice, or the future of work related to these roles.
+1. OPEN WITH A HUMAN STORY
+   Every article MUST open with a short, vivid mini-story about a named, believable person.
+   Example: "Karim had been a product manager at a Dhaka startup for six years. Then one Tuesday morning, he opened his laptop and found a Slack message that changed everything..."
+   This person's journey should frame the entire article.
+
+2. USE REAL-WORLD EXAMPLES
+   Include at least 2 specific, credible examples:
+   - Named companies (Google, Shopify, Automattic, GitLab, Airbnb, etc.)
+   - Actual studies or statistics (cite source inline: "per a 2024 Stanford study...")
+   - Real industry trends or events
+   Do NOT make up fake statistics. Use plausible, general knowledge facts.
+
+3. WRITE LIKE A HUMAN EXPERT
+   - Warm, confident, slightly opinionated voice ("Here's the uncomfortable truth...", "What nobody tells you is...")
+   - Use contractions ("don't", "we've", "it's")
+   - Avoid corporate jargon and buzzword soup
+   - End with a specific, actionable takeaway or memorable closing line
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HEADING STRUCTURE RULES — MANDATORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The "content" field MUST follow this exact heading hierarchy:
+
+# [Bold opening hook or pull-quote — one line that stops scrollers]
+
+## [Major Section 1 — e.g., "The Problem Nobody Talks About"]
+   Body text with story, data, examples...
+
+### [Sub-point or named example — e.g., "How GitLab Did It"]
+   Supporting details...
+
+## [Major Section 2 — e.g., "What the Data Actually Shows"]
+   ...
+
+## [Major Section 3 — e.g., "5 Steps You Can Take Starting Today"]
+   ...
+
+Minimum: 1× H1, 3× H2, 2× H3 per article
+Target: 600-800 words per article
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SEO & CTR RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TITLES must use at least one of:
+- A number ("7 Things...", "The 3 Mistakes...")
+- A curiosity gap ("The Truth About...", "What Nobody Tells You About...")
+- Strong emotion / urgency ("Why Every Developer Should...", "Stop Doing This If You Want to...")
+
+EXCERPT = 2 punchy sentences that make someone stop scrolling and click.
+
+GOOGLE ADSENSE COMPLIANCE:
+- Unique, high-value content only
+- No clickbait or deception
+- Safe for all audiences
+- Demonstrates E-E-A-T (Experience, Expertise, Authority, Trust)
+
+Draw loose inspiration from these recent FutureTalents job postings (DO NOT just list jobs — use them to identify industry trends, skills in demand, or career narratives):
 
 Context Jobs:
 `, count))
@@ -532,19 +632,19 @@ Context Jobs:
 
 	sb.WriteString(`
 Classify each article into one of: Remote Work, Tech, Career, Productivity, Future of Work.
-Generate a highly specific, one or two-word "image_keyword" that visually represents the article (e.g., "developer,office", "laptop,coffee", "interview"). Avoid spaces.
+Generate a specific 1-3 word "image_keyword" that visually represents the article topic (e.g., "remote developer", "team meeting", "AI robot"). No special characters.
 
-You MUST respond in valid JSON format as an array of objects matching this schema:
+You MUST respond in valid JSON format as an array of objects:
 [
   {
-    "title": "An SEO-friendly, catchy article title",
-    "category": "One of the 5 categories listed above",
-    "excerpt": "Compelling 1-2 sentence hook summary",
-    "content": "Full rewritten article content in markdown format (use H2, bullet points, bolding)",
-    "image_keyword": "keyword for stock image search"
+    "title": "High-CTR title with power words",
+    "category": "One of the 5 categories",
+    "excerpt": "2-sentence punchy hook",
+    "content": "Full story-mode article with # H1 hook, ## H2 sections, ### H3 sub-points, 600-800 words",
+    "image_keyword": "2-3 word topic keyword for image search"
   }
 ]
-Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JSON array.`)
+Return ONLY the JSON array. Do NOT wrap in backticks or markdown.`)
 
 	genConfig := map[string]interface{}{
 		"temperature":      0.8, // Slightly higher for creativity
@@ -591,7 +691,7 @@ Do NOT wrap the response in markdown backticks or formatting. Return ONLY the JS
 			Category:    res.Category,
 			Excerpt:     res.Excerpt,
 			Content:     res.Content,
-			Author:      "FutureTalent Editorial",
+			Author:      "FutureTalents",
 			PublishedAt: time.Now(),
 		}
 		art.GenerateSlug()

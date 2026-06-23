@@ -102,8 +102,21 @@ func (e *Engine) Run() {
 		}
 	}
 
+	// Fetch admin-controlled scraper settings
+	settings, err := e.db.GetScraperSettings()
+	if err != nil {
+		log.Printf("[Settings] Warning: could not fetch settings, using defaults: %v", err)
+	}
+	enableJobs := settings["enable_job_scraping"] != "false"
+	enableArticles := settings["enable_article_scraping"] != "false"
+	articleAuthor := settings["article_author"]
+	seoFormat := settings["article_seo_format"] != "false"
+
+	log.Printf("[Settings] Jobs=%v | Articles=%v | Author=%q | SEO Format=%v",
+		enableJobs, enableArticles, articleAuthor, seoFormat)
+
 	// Create run log in database
-	err := e.db.CreateScraperRun(runID, runNumber)
+	err = e.db.CreateScraperRun(runID, runNumber)
 	if err != nil {
 		log.Printf("Error creating scraper run in DB: %v", err)
 	}
@@ -123,43 +136,51 @@ func (e *Engine) Run() {
 	jobChan := make(chan shared.Job, 200)
 	newsChan := make(chan shared.News, 100)
 
-	// Start job scrapers concurrently
-	for _, s := range e.scrapers {
-		wg.Add(1)
-		go func(sc Scraper) {
-			defer wg.Done()
-			log.Printf("Starting job scraper: %s", sc.Name())
-			jobs, err := sc.Crawl()
-			if err != nil {
-				log.Printf("Error in job scraper %s: %v", sc.Name(), err)
-				return
-			}
-			for _, job := range jobs {
-				jobChan <- job
-			}
-		}(s)
+	// Start job scrapers concurrently (only if enabled in admin settings)
+	if enableJobs {
+		for _, s := range e.scrapers {
+			wg.Add(1)
+			go func(sc Scraper) {
+				defer wg.Done()
+				log.Printf("Starting job scraper: %s", sc.Name())
+				jobs, err := sc.Crawl()
+				if err != nil {
+					log.Printf("Error in job scraper %s: %v", sc.Name(), err)
+					return
+				}
+				for _, job := range jobs {
+					jobChan <- job
+				}
+			}(s)
+		}
+	} else {
+		log.Printf("[Settings] ⏸️  Job scraping is DISABLED by admin settings. Skipping all job scrapers.")
 	}
 
-	// Start news scrapers concurrently
-	for _, ns := range e.newsScrapers {
-		wg.Add(1)
-		go func(nsc NewsScraper) {
-			defer wg.Done()
-			log.Printf("Starting news scraper: %s", nsc.Name())
-			articles, err := nsc.CrawlNews()
-			if err != nil {
-				log.Printf("Error in news scraper %s: %v", nsc.Name(), err)
-				return
-			}
-			// Only take the first 10 articles per RSS feed to keep runs fast and avoid API key exhaustion
-			limit := 10
-			if len(articles) < limit {
-				limit = len(articles)
-			}
-			for i := 0; i < limit; i++ {
-				newsChan <- articles[i]
-			}
-		}(ns)
+	// Start news scrapers concurrently (only if enabled in admin settings)
+	if enableArticles {
+		for _, ns := range e.newsScrapers {
+			wg.Add(1)
+			go func(nsc NewsScraper) {
+				defer wg.Done()
+				log.Printf("Starting news scraper: %s", nsc.Name())
+				articles, err := nsc.CrawlNews()
+				if err != nil {
+					log.Printf("Error in news scraper %s: %v", nsc.Name(), err)
+					return
+				}
+				// Only take the first 10 articles per RSS feed to keep runs fast and avoid API key exhaustion
+				limit := 10
+				if len(articles) < limit {
+					limit = len(articles)
+				}
+				for i := 0; i < limit; i++ {
+					newsChan <- articles[i]
+				}
+			}(ns)
+		}
+	} else {
+		log.Printf("[Settings] ⏸️  Article scraping is DISABLED by admin settings. Skipping all news scrapers.")
 	}
 
 	// Closer goroutine — signals both channels when all scrapers finish fetching
@@ -226,20 +247,24 @@ func (e *Engine) Run() {
 			batch = append(batch, &a)
 
 			if len(batch) >= 5 {
-				e.processNewsBatch(batch)
+				e.processNewsBatch(batch, articleAuthor, seoFormat)
 				batch = nil
 			}
 		}
 		if len(batch) > 0 {
-			e.processNewsBatch(batch)
+			e.processNewsBatch(batch, articleAuthor, seoFormat)
 		}
 	}()
 
 	// Wait for both processing pipelines to complete
 	processingWg.Wait()
 
-	// Run automated article generation pipeline
-	e.GenerateAndSaveDailyArticles(4)
+	// Run automated article generation pipeline — 2 articles × 4 runs/day = 8 articles/day
+	if enableArticles {
+		e.GenerateAndSaveDailyArticles(2, articleAuthor, seoFormat)
+	} else {
+		log.Printf("[Settings] ⏸️  Skipping daily article generation (articles disabled).")
+	}
 
 	// Update the scraper run log in the DB
 	err = e.db.UpdateScraperRun(runID, int(atomic.LoadInt64(&e.jobsAdded)), int(atomic.LoadInt64(&e.newsAdded)), status, errMsg)
@@ -291,10 +316,10 @@ func (e *Engine) processJobBatch(jobs []*shared.Job) {
 	}
 }
 
-func (e *Engine) processNewsBatch(articles []*shared.News) {
-	// 1. AI Content Optimization
+func (e *Engine) processNewsBatch(articles []*shared.News, authorOverride string, seoFormat bool) {
+	// 1. AI Content Optimization (with optional SEO heading enforcement)
 	if e.aiService != nil {
-		err := e.aiService.OptimizeNewsBatch(articles)
+		err := e.aiService.OptimizeNewsBatch(articles, seoFormat)
 		if err != nil {
 			log.Printf("[AI] ❌ AI Optimization failed for batch of %d news articles: %v", len(articles), err)
 			return // Don't save unoptimized news
@@ -303,8 +328,13 @@ func (e *Engine) processNewsBatch(articles []*shared.News) {
 		return
 	}
 
-	// 2. Save to Database
+	// 2. Save to Database (with author override from admin settings)
 	for _, art := range articles {
+		// Override author with admin-configured value
+		if authorOverride != "" {
+			art.Author = authorOverride
+		}
+
 		err := e.db.SaveNews(*art)
 		if err != nil {
 			log.Printf("Error saving news article %s: %v", art.Title, err)
@@ -316,7 +346,7 @@ func (e *Engine) processNewsBatch(articles []*shared.News) {
 }
 
 // GenerateAndSaveDailyArticles fetches context from recent jobs and writes totally unique articles via AI
-func (e *Engine) GenerateAndSaveDailyArticles(count int) {
+func (e *Engine) GenerateAndSaveDailyArticles(count int, authorOverride string, seoFormat bool) {
 	if e.aiService == nil {
 		return
 	}
@@ -330,21 +360,25 @@ func (e *Engine) GenerateAndSaveDailyArticles(count int) {
 		// Even if context fails, we can still generate generic articles
 	}
 
-	// 2. Generate articles
-	articles, err := e.aiService.GenerateOriginalArticles(jobsCtx, count)
+	// 2. Generate articles (with SEO format flag)
+	articles, err := e.aiService.GenerateOriginalArticles(jobsCtx, count, seoFormat)
 	if err != nil {
 		log.Printf("Error generating original AI articles: %v", err)
 		return
 	}
 
-	// 3. Save to database
+	// 3. Save to database (with author override from admin settings)
 	for _, art := range articles {
+		if authorOverride != "" {
+			art.Author = authorOverride
+		}
+
 		err := e.db.SaveNews(art)
 		if err != nil {
 			log.Printf("Error saving AI-generated article %s: %v", art.Title, err)
 			continue
 		}
 		atomic.AddInt64(&e.newsAdded, 1)
-		log.Printf("✅ Published Original AI Article: [%s] Category: %s", art.Title, art.Category)
+		log.Printf("✅ Published Original AI Article: [%s] Category: %s by %s", art.Title, art.Category, art.Author)
 	}
 }

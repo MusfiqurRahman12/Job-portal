@@ -23,7 +23,11 @@ export default function AdminDashboard() {
   } | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
+<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper' | 'social'>('job');
+=======
+  const [activeTab, setActiveTab] = useState<'job' | 'article' | 'scraper' | 'settings'>('job');
+>>>>>>> 21ad21f (feat: implement admin scraper settings panel & toggle control)
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   
@@ -31,6 +35,7 @@ export default function AdminDashboard() {
   const [runs, setRuns] = useState<any[]>([]);
   const [scraperLoading, setScraperLoading] = useState(false);
 
+<<<<<<< HEAD
   // Image Upload States
   const [jobLogo, setJobLogo] = useState('');
   const [articleImage, setArticleImage] = useState('');
@@ -214,6 +219,15 @@ export default function AdminDashboard() {
     }
     return '';
   };
+=======
+  // Settings State
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [enableJobScraping, setEnableJobScraping] = useState(true);
+  const [enableArticleScraping, setEnableArticleScraping] = useState(true);
+  const [articleAuthor, setArticleAuthor] = useState('FutureTalent');
+  const [articleSeoFormat, setArticleSeoFormat] = useState(true);
+>>>>>>> 21ad21f (feat: implement admin scraper settings panel & toggle control)
 
   // Authentication & Session Management
   const checkSession = async () => {
@@ -396,6 +410,9 @@ export default function AdminDashboard() {
     if (activeTab === 'scraper') {
       fetchRuns();
     }
+    if (activeTab === 'settings') {
+      fetchSettings();
+    }
   }, [activeTab]);
 
   // Fetch social posts automatically when the social tab is selected
@@ -404,6 +421,55 @@ export default function AdminDashboard() {
       fetchSocialPosts();
     }
   }, [activeTab]);
+
+  // Settings API
+  const fetchSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const res = await fetch('/api/admin/settings');
+      if (res.ok) {
+        const data = await res.json();
+        const s = data.settings || {};
+        setEnableJobScraping(s.enable_job_scraping?.value !== 'false');
+        setEnableArticleScraping(s.enable_article_scraping?.value !== 'false');
+        setArticleAuthor(s.article_author?.value || 'FutureTalent');
+        setArticleSeoFormat(s.article_seo_format?.value !== 'false');
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings', err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    setSettingsSaving(true);
+    setMessage('');
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            enable_job_scraping: enableJobScraping ? 'true' : 'false',
+            enable_article_scraping: enableArticleScraping ? 'true' : 'false',
+            article_author: articleAuthor.trim() || 'FutureTalent',
+            article_seo_format: articleSeoFormat ? 'true' : 'false',
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage('Settings saved successfully! Changes take effect on the next scraper run.');
+      } else {
+        setMessage(`Error: ${data.error || data.errors?.join(', ') || 'Failed to save settings'}`);
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
 
   if (isAuthenticated === null) {
     return (
@@ -556,12 +622,21 @@ export default function AdminDashboard() {
             Auto Scraper
           </button>
           <button
+<<<<<<< HEAD
             onClick={() => setActiveTab('social')}
             className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
               activeTab === 'social' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             Social Marketing
+=======
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
+              activeTab === 'settings' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            ⚙️ Settings
+>>>>>>> 21ad21f (feat: implement admin scraper settings panel & toggle control)
           </button>
         </div>
 
@@ -1152,6 +1227,128 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Scraper Settings</h2>
+                <p className="text-sm text-gray-400 mt-1">Control what the auto scraper does on each run. Changes take effect on the next scheduled or manual run.</p>
+              </div>
+
+              {settingsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-3 text-gray-400">Loading settings...</span>
+                </div>
+              ) : (
+                <>
+                  {/* Toggle: Enable Job Scraping */}
+                  <div className="bg-[#1a1a24] border border-gray-700 rounded-lg p-5 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-white">Job Scraping</p>
+                      <p className="text-sm text-gray-400 mt-0.5">Automatically scrape and AI-rewrite job listings from remote job boards.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEnableJobScraping(!enableJobScraping)}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none cursor-pointer ${
+                        enableJobScraping ? 'bg-blue-600' : 'bg-gray-600'
+                      }`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${
+                        enableJobScraping ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Toggle: Enable Article Scraping */}
+                  <div className="bg-[#1a1a24] border border-gray-700 rounded-lg p-5 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-white">Article Scraping & Generation</p>
+                      <p className="text-sm text-gray-400 mt-0.5">Scrape RSS feeds, AI-rewrite articles, and generate original blog posts.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEnableArticleScraping(!enableArticleScraping)}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none cursor-pointer ${
+                        enableArticleScraping ? 'bg-purple-600' : 'bg-gray-600'
+                      }`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${
+                        enableArticleScraping ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Toggle: SEO Format Enforcement */}
+                  <div className="bg-[#1a1a24] border border-gray-700 rounded-lg p-5 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-white">SEO Heading Format</p>
+                      <p className="text-sm text-gray-400 mt-0.5">Force AI-rewritten articles to use structured H1, H2, H3 headings for better Google ranking.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setArticleSeoFormat(!articleSeoFormat)}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none cursor-pointer ${
+                        articleSeoFormat ? 'bg-emerald-600' : 'bg-gray-600'
+                      }`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${
+                        articleSeoFormat ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Text Input: Article Author Name */}
+                  <div className="bg-[#1a1a24] border border-gray-700 rounded-lg p-5">
+                    <label className="block font-medium text-white mb-1">Article Author Name</label>
+                    <p className="text-sm text-gray-400 mb-3">The author name that appears on all AI-generated and scraped articles.</p>
+                    <input
+                      type="text"
+                      value={articleAuthor}
+                      onChange={(e) => setArticleAuthor(e.target.value)}
+                      className="w-full max-w-md bg-[#0f0f15] border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all duration-200"
+                      placeholder="FutureTalent"
+                    />
+                  </div>
+
+                  {/* Status summary */}
+                  <div className="bg-[#12121a] border border-gray-800 rounded-lg p-4 mt-2">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Current Configuration Preview</p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className={`px-2.5 py-1 rounded-md border font-medium ${
+                        enableJobScraping ? 'bg-blue-950/40 text-blue-400 border-blue-800/30' : 'bg-gray-800 text-gray-500 border-gray-700'
+                      }`}>
+                        Jobs: {enableJobScraping ? 'ON' : 'OFF'}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-md border font-medium ${
+                        enableArticleScraping ? 'bg-purple-950/40 text-purple-400 border-purple-800/30' : 'bg-gray-800 text-gray-500 border-gray-700'
+                      }`}>
+                        Articles: {enableArticleScraping ? 'ON' : 'OFF'}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-md border font-medium ${
+                        articleSeoFormat ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/30' : 'bg-gray-800 text-gray-500 border-gray-700'
+                      }`}>
+                        SEO: {articleSeoFormat ? 'ON' : 'OFF'}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-md border bg-amber-950/40 text-amber-400 border-amber-800/30 font-medium">
+                        Author: {articleAuthor || 'FutureTalent'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={saveSettings}
+                    disabled={settingsSaving}
+                    className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-medium py-3 rounded-lg shadow-lg hover:shadow-amber-500/20 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                  >
+                    {settingsSaving ? 'Saving...' : 'Save Settings'}
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

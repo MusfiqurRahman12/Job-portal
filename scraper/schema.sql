@@ -156,6 +156,18 @@ BEGIN
 END
 $$;
 
+-- Admin-controlled scraper settings (key-value configuration)
+CREATE TABLE IF NOT EXISTS scraper_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-
-
+-- Seed default settings (safe: ON CONFLICT DO NOTHING preserves existing values)
+INSERT INTO scraper_settings (key, value, description) VALUES
+('enable_job_scraping', 'true', 'Enable automatic scraping and AI rewriting of job listings'),
+('enable_article_scraping', 'true', 'Enable automatic scraping and AI rewriting of news/blog articles'),
+('article_author', 'FutureTalent', 'Default author name for crawled and AI-rewritten articles'),
+('article_seo_format', 'true', 'Enforce structured SEO headings (H1, H2, H3) in rewritten articles')
+ON CONFLICT (key) DO NOTHING;
