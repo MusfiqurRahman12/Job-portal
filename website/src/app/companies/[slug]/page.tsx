@@ -193,7 +193,7 @@ export default async function CompanyPage({ params }: PageProps) {
                 const hoursLeft = job.expires_at ? getHoursLeft(job.expires_at) : 24;
                 const style = getCategoryStyle(job.category);
                 const color = style.color || "#8b5cf6";
-                const companyLogo = job.company_logo || company.logo || job.company[0];
+                const logoSrc = job.company_logo || company.logo;
 
                 return (
                   <div
@@ -211,10 +211,10 @@ export default async function CompanyPage({ params }: PageProps) {
                         }}
                       >
                           <CompanyLogo
-                            src={companyLogo}
+                            src={logoSrc}
                             alt={job.company}
                             className="w-full h-full object-contain rounded-md p-1"
-                            fallback={companyLogo}
+                            fallback={job.company?.[0] || ""}
                           />
                       </div>
                       <div>

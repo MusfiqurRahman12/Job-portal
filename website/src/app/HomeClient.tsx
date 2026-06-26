@@ -720,7 +720,6 @@ export default function Home() {
               const color = job.color || getCategoryStyle(job.category).color || "#8b5cf6";
               const title = job.title;
               const company = job.company;
-              const company_logo = job.company_logo || company[0];
               const location = job.location;
               const remote_type = job.remote_type;
               const tags = job.tags || [];
@@ -745,10 +744,10 @@ export default function Home() {
                     }}
                   >
                     <CompanyLogo
-                      src={company_logo}
+                      src={job.company_logo}
                       alt={company}
                       className="w-full h-full object-contain rounded-md p-1"
-                      fallback={company_logo}
+                      fallback={company?.[0] || ""}
                       loading="lazy"
                       decoding="async"
                     />

@@ -206,8 +206,6 @@ async function JobsContent({ searchParams }: PageProps) {
                   {jobs.map((job) => {
                     const hoursLeft = job.expires_at ? getHoursLeft(job.expires_at) : 24;
                     const color = getCategoryStyle(job.category).color || "#94a3b8";
-                    const company_logo = job.company_logo || job.company[0];
-                    
                     return (
                       <div
                         key={job.id}
@@ -223,10 +221,10 @@ async function JobsContent({ searchParams }: PageProps) {
                             }}
                           >
                             <CompanyLogo
-                              src={company_logo}
+                              src={job.company_logo}
                               alt={job.company}
                               className="w-full h-full object-contain rounded-md p-1"
-                              fallback={company_logo}
+                              fallback={job.company?.[0] || ""}
                             />
                           </div>
                           <div>

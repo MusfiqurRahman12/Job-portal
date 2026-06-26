@@ -28,7 +28,18 @@ export default function CompanyLogo({
     (src.startsWith("http") || src.startsWith("data:") || src.startsWith("/"));
 
   if (error || !isValidSrc) {
-    return <>{fallback}</>;
+    let renderedFallback = fallback;
+    if (typeof fallback === "string") {
+      const looksLikeUrlOrPath =
+        fallback.includes("/") ||
+        fallback.includes("\\") ||
+        fallback.includes(".") ||
+        fallback.length > 4;
+      if (looksLikeUrlOrPath) {
+        renderedFallback = alt ? alt[0].toUpperCase() : (fallback[0] ? fallback[0].toUpperCase() : "C");
+      }
+    }
+    return <>{renderedFallback}</>;
   }
 
   return (

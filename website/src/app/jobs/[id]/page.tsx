@@ -478,7 +478,7 @@ export default async function JobDetailPage({ params }: Props) {
                 src={job.company_logo}
                 alt={job.company}
                 className="w-full h-full object-contain p-2"
-                fallback={job.company_logo || job.company[0]}
+                fallback={job.company?.[0] || ""}
               />
             </div>
             <div>
@@ -632,7 +632,7 @@ export default async function JobDetailPage({ params }: Props) {
                             src={rJob.company_logo}
                             alt={rJob.company}
                             className="w-full h-full object-contain p-1 rounded-lg"
-                            fallback={rJob.company_logo || rJob.company[0]}
+                            fallback={rJob.company?.[0] || ""}
                           />
                       </div>
                       <div>
