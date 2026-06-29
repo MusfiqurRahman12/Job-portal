@@ -280,7 +280,7 @@ The companies of the tomorrow are global, asynchronous, and driven by output rat
         </div>
 
         {/* Center Content */}
-        <div className="lg:col-span-7 col-span-12">
+        <div className="lg:col-span-7 col-span-12 w-full max-w-full min-w-0">
           {/* Mobile Author & Sharing */}
           <div className="flex lg:hidden items-center justify-between gap-4 mb-10 border-b border-white/10 pb-6">
             <div className="flex items-center gap-4">
