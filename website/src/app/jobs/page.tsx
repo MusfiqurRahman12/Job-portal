@@ -5,13 +5,38 @@ import SearchForm from "@/components/SearchForm";
 import { Metadata } from "next";
 import CompanyLogo from "@/components/CompanyLogo";
 
-export const metadata: Metadata = {
-  title: "Browse All Jobs — Remote, Hybrid & On-Site | FutureTalent",
-  description: "Browse hundreds of active remote, hybrid, and on-site jobs in Software Engineering, Design, Marketing, Product Management, and DevOps. Filter by category, location, and skills.",
-  alternates: {
-    canonical: "/jobs",
-  },
-};
+interface PageProps {
+  searchParams: Promise<{
+    category?: string;
+    search?: string;
+    page?: string;
+  }>;
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const resolvedParams = await searchParams;
+  const page = parseInt(resolvedParams.page || "1", 10);
+  const category = resolvedParams.category;
+  const search = resolvedParams.search;
+
+  // Pagination, category-filtered, and search pages should not be indexed
+  // to avoid duplicate/thin content — Google should follow links to individual job pages instead
+  const shouldNoIndex = page > 1 || !!category || !!search;
+
+  return {
+    title: "Browse All Jobs — Remote, Hybrid & On-Site | FutureTalent",
+    description: "Browse hundreds of active remote, hybrid, and on-site jobs in Software Engineering, Design, Marketing, Product Management, and DevOps. Filter by category, location, and skills.",
+    alternates: {
+      canonical: "/jobs",
+    },
+    ...(shouldNoIndex && {
+      robots: {
+        index: false,
+        follow: true,
+      },
+    }),
+  };
+}
 
 function ExpireBadge({ hoursLeft }: { hoursLeft: number }) {
   let cls = "expire-badge fresh";
@@ -41,14 +66,6 @@ const WORKPLACE_BADGES: Record<string, { label: string; icon: string; color: str
   hybrid: { label: "Hybrid", icon: "🔄", color: "#f59e0b" },
   onsite: { label: "On-Site", icon: "🏢", color: "#6366f1" },
 };
-
-interface PageProps {
-  searchParams: Promise<{
-    category?: string;
-    search?: string;
-    page?: string;
-  }>;
-}
 
 // Wrapper content component to resolve parameters and fetch data on the server
 async function JobsContent({ searchParams }: PageProps) {

@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { fetchJobs, fetchNews, fetchCategories, slugify, fetchCompanyProfiles } from "@/lib/api";
+import { fetchJobs, fetchNews, slugify, fetchCompanyProfiles } from "@/lib/api";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
 
   // ── Fetch all dynamic data concurrently ──
-  const [jobsResult, newsRes, companies, categories] = await Promise.all([
+  const [jobsResult, newsRes, companies] = await Promise.all([
     fetchAllJobsForSitemap().catch((err) => {
       console.error("Sitemap: Failed to fetch jobs:", err);
       return { jobs: [], totalCount: 0 };
@@ -47,10 +47,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
     fetchCompanyProfiles().catch((err) => {
       console.error("Sitemap: Failed to fetch companies:", err);
-      return [];
-    }),
-    fetchCategories().catch((err) => {
-      console.error("Sitemap: Failed to fetch categories:", err);
       return [];
     }),
   ]);
@@ -64,27 +60,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(job.created_at || job.posted_at),
     changeFrequency: "daily",
     priority: 0.8,
-  }));
-
-  // ── Paginated Job Listing Pages (/jobs?page=1, /jobs?page=2, ...) ──
-  const JOBS_PER_PAGE = 10;
-  const totalJobPages = Math.ceil(jobsResult.totalCount / JOBS_PER_PAGE);
-  const jobPaginationUrls: MetadataRoute.Sitemap = [];
-  for (let page = 2; page <= totalJobPages; page++) {
-    jobPaginationUrls.push({
-      url: `${baseUrl}/jobs?page=${page}`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.6,
-    });
-  }
-
-  // ── Category-filtered Job Listing Pages (/jobs?category=X) ──
-  const categoryUrls: MetadataRoute.Sitemap = categories.map((cat) => ({
-    url: `${baseUrl}/jobs?category=${encodeURIComponent(cat.name)}`,
-    lastModified: new Date(),
-    changeFrequency: "daily",
-    priority: 0.7,
   }));
 
   // ── Blog / News article URLs ──
@@ -104,6 +79,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // ── Assemble complete sitemap ──
+  // NOTE: Pagination (/jobs?page=N) and category-filtered (/jobs?category=X) pages
+  // are excluded because they have noindex robots directives.
+  // Including noindex pages in the sitemap sends conflicting signals to Google.
   return [
     // Static pages
     {
@@ -156,8 +134,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     // Dynamic pages
     ...jobUrls,
-    ...jobPaginationUrls,
-    ...categoryUrls,
     ...newsUrls,
     ...companyUrls,
   ];

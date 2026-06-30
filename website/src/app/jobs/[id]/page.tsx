@@ -2,6 +2,7 @@ import { fetchJobById, fetchJobs, getHoursLeft, getCategoryStyle, slugify } from
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import AdUnit from "@/components/AdUnit";
 import ShareButtons from "@/components/ShareButtons";
 import CompanyLogo from "@/components/CompanyLogo";
@@ -249,7 +250,7 @@ const WORKPLACE_BADGES: Record<string, { label: string; icon: string; color: str
 };
 
 export default async function JobDetailPage({ params }: Props) {
-  const resolvedParams = await params;
+const resolvedParams = await params;
   const rawId = resolvedParams.id;
   const actualId = rawId.split("-")[0];
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.futuretalent.online";
@@ -260,6 +261,14 @@ export default async function JobDetailPage({ params }: Props) {
   } catch (err) {
     console.error("Job details loading failed, rendering not found page:", err);
     notFound();
+  }
+
+  // Enforce canonical slug — redirect if the URL slug doesn't match the expected one
+  // This prevents duplicate content issues (e.g., /jobs/123-wrong-slug → /jobs/123-correct-slug)
+  const expectedSlug = slugify(job.title + " " + job.company);
+  const expectedPath = `${job.id}-${expectedSlug}`;
+  if (rawId !== expectedPath) {
+    redirect(`/jobs/${expectedPath}`);
   }
 
   const isExpired = job.expires_at ? new Date(job.expires_at).getTime() < Date.now() : false;
