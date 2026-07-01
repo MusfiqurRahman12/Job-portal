@@ -198,6 +198,8 @@ func (e *Engine) Run() {
 	processingWg.Add(1)
 	go func() {
 		defer processingWg.Done()
+		const maxJobsToProcess = 30
+		processedCount := 0
 		var batch []*shared.Job
 		for job := range jobChan {
 			// 1. Deduplicate — check if URL already exists in DB
@@ -215,9 +217,16 @@ func (e *Engine) Run() {
 				continue
 			}
 
+			// 3. Rate-limiting processing to avoid GitHub Actions timeout and Gemini API exhaustion
+			if processedCount >= maxJobsToProcess {
+				log.Printf("[Limit] ⏸️ Reached maximum job limit (%d) for this run. Skipping AI optimization for: %s", maxJobsToProcess, job.Title)
+				continue
+			}
+
 			// Capture loop variable correctly
 			j := job
 			batch = append(batch, &j)
+			processedCount++
 
 			if len(batch) >= 5 {
 				e.processJobBatch(batch)
@@ -234,6 +243,8 @@ func (e *Engine) Run() {
 	processingWg.Add(1)
 	go func() {
 		defer processingWg.Done()
+		const maxNewsToProcess = 5
+		processedCount := 0
 		var batch []*shared.News
 		for art := range newsChan {
 			// Deduplicate
@@ -243,8 +254,15 @@ func (e *Engine) Run() {
 				continue
 			}
 
+			// Rate-limiting processing to avoid GitHub Actions timeout and Gemini API exhaustion
+			if processedCount >= maxNewsToProcess {
+				log.Printf("[Limit] ⏸️ Reached maximum news limit (%d) for this run. Skipping AI optimization for: %s", maxNewsToProcess, art.Title)
+				continue
+			}
+
 			a := art
 			batch = append(batch, &a)
+			processedCount++
 
 			if len(batch) >= 5 {
 				e.processNewsBatch(batch, articleAuthor, seoFormat)
