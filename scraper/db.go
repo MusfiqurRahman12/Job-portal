@@ -6,6 +6,7 @@ import (
 	"job-portal-crawler/shared"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/lib/pq"
@@ -105,14 +106,30 @@ func (db *DB) CleanExpiredJobs() ([]ExpiredJobInfo, error) {
 	return jobs, nil
 }
 
-// DeleteExpiredJobs permanently removes jobs that have been archived for more than 7 days
-// (which corresponds to 8 days total after their application window expires_at passes)
+// DeleteExpiredJobs permanently removes jobs that are deactivated (is_active = FALSE) or have expired
 func (db *DB) DeleteExpiredJobs() (int64, error) {
 	query := `
 		DELETE FROM jobs 
-		WHERE is_active = FALSE AND expires_at < $1
+		WHERE is_active = FALSE OR expires_at < $1
 	`
-	result, err := db.conn.Exec(query, time.Now().Add(-8*24*time.Hour))
+	result, err := db.conn.Exec(query, time.Now())
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+// DeleteExpiredNews permanently removes news articles that are outside the top 150 most recent articles
+func (db *DB) DeleteExpiredNews() (int64, error) {
+	query := `
+		DELETE FROM news 
+		WHERE id NOT IN (
+			SELECT id FROM news 
+			ORDER BY published_at DESC 
+			LIMIT 150
+		)
+	`
+	result, err := db.conn.Exec(query)
 	if err != nil {
 		return 0, err
 	}
@@ -284,28 +301,56 @@ func (db *DB) StartCleanupScheduler(stop chan struct{}) {
 }
 
 func (db *DB) runCleanup() {
+	db.RunCleanupSync()
+}
+
+// RunCleanupSync deactivates expired jobs, sends Google Indexing deletion notifications synchronously,
+// and deletes inactive/expired jobs and old news articles to keep database under 5GB/500MB.
+func (db *DB) RunCleanupSync() {
+	log.Println("🧹 Starting database cleanup...")
+
+	// 1. Deactivate expired jobs and notify Google Indexing
 	expiredJobs, err := db.CleanExpiredJobs()
 	if err != nil {
-		log.Printf("Error cleaning expired jobs: %v", err)
+		log.Printf("[Cleanup] ❌ Error cleaning expired jobs: %v", err)
 	} else if len(expiredJobs) > 0 {
-		log.Printf("Deactivated %d expired jobs", len(expiredJobs))
+		log.Printf("[Cleanup] Deactivated %d expired jobs", len(expiredJobs))
+		
+		var wg sync.WaitGroup
 		for _, j := range expiredJobs {
+			wg.Add(1)
 			go func(jobID int64, title string, company string) {
+				defer wg.Done()
 				slug := Slugify(fmt.Sprintf("%s %s", title, company))
 				jobURL := fmt.Sprintf("https://www.futuretalent.online/jobs/%d-%s", jobID, slug)
 				if err := NotifyGoogleIndexing(jobURL, "URL_DELETED"); err != nil {
 					log.Printf("[Indexing] ⚠️ Google Indexing API deletion failed for %s: %v", jobURL, err)
+				} else {
+					log.Printf("[Indexing] ✅ Notified Google Indexing of deletion for: %s", jobURL)
 				}
 			}(j.ID, j.Title, j.Company)
 		}
+		wg.Wait()
+		log.Println("[Cleanup] Google Indexing deletion notifications complete.")
 	}
 
-	deleted, err := db.DeleteExpiredJobs()
+	// 2. Permanently delete deactivated or expired jobs
+	deletedJobs, err := db.DeleteExpiredJobs()
 	if err != nil {
-		log.Printf("Error deleting old expired jobs: %v", err)
-	} else if deleted > 0 {
-		log.Printf("Permanently deleted %d jobs (expired > 7 days ago)", deleted)
+		log.Printf("[Cleanup] ❌ Error deleting old expired jobs: %v", err)
+	} else if deletedJobs > 0 {
+		log.Printf("[Cleanup] Permanently deleted %d inactive/expired jobs", deletedJobs)
 	}
+
+	// 3. Permanently delete old news articles (keeping only the top 150)
+	deletedNews, err := db.DeleteExpiredNews()
+	if err != nil {
+		log.Printf("[Cleanup] ❌ Error deleting old news articles: %v", err)
+	} else if deletedNews > 0 {
+		log.Printf("[Cleanup] Permanently deleted %d old news articles (kept latest 150)", deletedNews)
+	}
+
+	log.Println("✨ Database cleanup complete.")
 }
 
 func (db *DB) Close() {

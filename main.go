@@ -113,6 +113,9 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 
 	engine.Run()
 	log.Println("✅ Scrape cycle complete")
+
+	// Run database cleanup synchronously to guarantee execution completes in transient environments like GitHub Actions
+	db.RunCleanupSync()
 }
 
 func runAPI(db *scraper.DB) {
