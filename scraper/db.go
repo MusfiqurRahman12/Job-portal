@@ -106,13 +106,14 @@ func (db *DB) CleanExpiredJobs() ([]ExpiredJobInfo, error) {
 	return jobs, nil
 }
 
-// DeleteExpiredJobs permanently removes jobs that are deactivated (is_active = FALSE) or have expired
+// DeleteExpiredJobs permanently removes jobs that have been archived for more than 7 days
+// (which corresponds to 8 days total after their application window expires_at passes)
 func (db *DB) DeleteExpiredJobs() (int64, error) {
 	query := `
 		DELETE FROM jobs 
-		WHERE is_active = FALSE OR expires_at < $1
+		WHERE is_active = FALSE AND expires_at < $1
 	`
-	result, err := db.conn.Exec(query, time.Now())
+	result, err := db.conn.Exec(query, time.Now().Add(-8*24*time.Hour))
 	if err != nil {
 		return 0, err
 	}

@@ -41,6 +41,7 @@ export async function fetchJobs(params?: {
   category?: string;
   remote_type?: string;
   search?: string;
+  includeDescription?: boolean;
 }): Promise<JobsResponse> {
   const limit = params?.limit || 10;
   const offset = params?.offset || 0;
@@ -62,9 +63,13 @@ export async function fetchJobs(params?: {
     }
   }
 
+  const selectColumns = params?.includeDescription
+    ? "*"
+    : "id, title, company, company_logo, location, source, url, remote_type, workplace_type, category, tags, salary, posted_at, expires_at, created_at, is_active";
+
   let query = supabase
     .from("jobs")
-    .select("*", { count: "exact" })
+    .select(selectColumns, { count: "exact" })
     .eq("is_active", true)
     .gt("expires_at", new Date().toISOString());
 
@@ -91,7 +96,7 @@ export async function fetchJobs(params?: {
   }
 
   return {
-    jobs: (data as Job[]) || [],
+    jobs: (data as any as Job[]) || [],
     count: count || 0,
     limit,
     offset,
@@ -196,7 +201,7 @@ export interface NewsResponse {
   offset: number;
 }
 
-export async function fetchNews(limit = 10, offset = 0): Promise<NewsResponse> {
+export async function fetchNews(limit = 10, offset = 0, includeContent = false): Promise<NewsResponse> {
   if (isLocalAPI) {
     try {
       const res = await fetch(`${apiBase}/api/news?limit=${limit}&offset=${offset}`);
@@ -207,9 +212,13 @@ export async function fetchNews(limit = 10, offset = 0): Promise<NewsResponse> {
     }
   }
 
+  const selectColumns = includeContent
+    ? "*"
+    : "id, title, slug, excerpt, category, image, author, url, published_at, created_at";
+
   const { data, count, error } = await supabase
     .from("news")
-    .select("*", { count: "exact" })
+    .select(selectColumns, { count: "exact" })
     .order("published_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -219,7 +228,7 @@ export async function fetchNews(limit = 10, offset = 0): Promise<NewsResponse> {
   }
 
   return {
-    news: (data as News[]) || [],
+    news: (data as any as News[]) || [],
     count: count || 0,
     limit,
     offset,
@@ -374,7 +383,7 @@ export async function fetchCompanyProfiles(): Promise<CompanyProfile[]> {
 export async function fetchJobsByCompany(companyName: string): Promise<Job[]> {
   const { data, error } = await supabase
     .from("jobs")
-    .select("*")
+    .select("id, title, company, company_logo, location, source, url, remote_type, workplace_type, category, tags, salary, posted_at, expires_at, created_at, is_active")
     .eq("company", companyName)
     .eq("is_active", true)
     .gt("expires_at", new Date().toISOString())
@@ -385,13 +394,47 @@ export async function fetchJobsByCompany(companyName: string): Promise<Job[]> {
     return [];
   }
 
-  return (data as Job[]) || [];
+  return (data as any as Job[]) || [];
 }
 
 export async function fetchCompanyBySlug(slug: string): Promise<CompanyProfile | null> {
   const profiles = await fetchCompanyProfiles();
   const profile = profiles.find((p) => slugify(p.name) === slug);
   return profile || null;
+}
+
+export interface SystemStats {
+  total_jobs: number;
+  active_jobs: number;
+  total_articles: number;
+  active_articles: number;
+  total_sources: number;
+  total_countries: number;
+}
+
+export async function fetchSystemStats(): Promise<SystemStats> {
+  if (isLocalAPI) {
+    try {
+      const res = await fetch(`${apiBase}/api/health`);
+      if (!res.ok) throw new Error(`Go API returned status ${res.status}`);
+      // return a placeholder structured data
+      return { total_jobs: 100, active_jobs: 26, total_articles: 150, active_articles: 150, total_sources: 5, total_countries: 12 };
+    } catch (err) {
+      console.error("Local API health fetch failed, falling back:", err);
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("system_stats_view")
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("Error fetching system stats from Supabase:", error);
+    throw new Error("Failed to fetch system stats");
+  }
+
+  return data as SystemStats;
 }
 
 

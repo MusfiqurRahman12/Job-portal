@@ -7,8 +7,7 @@ import AdUnit from "@/components/AdUnit";
 import ShareButtons from "@/components/ShareButtons";
 import CompanyLogo from "@/components/CompanyLogo";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 86400; // Cache job details for 24 hours
 
 interface Props {
   params: Promise<{ id: string }>;

@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 import { fetchJobs, fetchNews, slugify, fetchCompanyProfiles } from "@/lib/api";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 43200; // Cache sitemap for 12 hours
 
 /**
  * Fetches ALL active, non-expired jobs by paginating through Supabase.

@@ -3,8 +3,7 @@ import { Metadata } from "next";
 import { fetchNewsBySlug } from "@/lib/api";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 86400; // Cache blog articles for 24 hours
 
 interface Props {
   params: Promise<{ slug: string }>;

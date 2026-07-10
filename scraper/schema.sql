@@ -71,7 +71,9 @@ SELECT
     (SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::int FROM jobs_id_seq) as total_jobs,
     (SELECT COUNT(*)::int FROM jobs WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP) as active_jobs,
     (SELECT (CASE WHEN is_called THEN last_value ELSE 0 END)::int FROM news_id_seq) as total_articles,
-    (SELECT COUNT(*)::int FROM news) as active_articles;
+    (SELECT COUNT(*)::int FROM news) as active_articles,
+    (SELECT COUNT(DISTINCT source)::int FROM jobs WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP) as total_sources,
+    (SELECT COUNT(DISTINCT COALESCE(NULLIF(regexp_replace(location, '^.*,\s*', ''), ''), location))::int FROM jobs WHERE is_active = TRUE AND expires_at > CURRENT_TIMESTAMP) as total_countries;
 
 
 -- Subscribers/Newsletter table for job alerts

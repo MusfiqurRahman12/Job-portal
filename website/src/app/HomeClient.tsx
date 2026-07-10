@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { fetchJobs, fetchJobCount, fetchCategories, getHoursLeft, Job, CategoryCount, slugify, getCategoryStyle } from "@/lib/api";
+import { fetchJobs, fetchJobCount, fetchCategories, fetchSystemStats, getHoursLeft, Job, CategoryCount, slugify, getCategoryStyle } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import AdUnit from "@/components/AdUnit";
 import CompanyLogo from "@/components/CompanyLogo";
@@ -273,35 +273,14 @@ export default function Home() {
         const jobsRes = await fetchJobs(jobsParams);
         setApiJobs(jobsRes.jobs || []);
         
-        const count = await fetchJobCount();
-        setTotalJobs(count);
-        
         const cats = await fetchCategories();
         setApiCategories(cats || []);
 
-        // Load stats from Supabase
-        const { data: statsData, error: statsError } = await supabase
-          .from("jobs")
-          .select("source, location")
-          .eq("is_active", true)
-          .gt("expires_at", new Date().toISOString());
-
-        if (!statsError && statsData) {
-          const uniqueSources = new Set(statsData.map((j: any) => j.source).filter(Boolean));
-          setTotalSources(uniqueSources.size);
-
-          const uniqueCountries = new Set(statsData.map((j: any) => {
-            if (!j.location) return null;
-            const loc = j.location.trim();
-            if (loc.toLowerCase().includes("world") || loc.toLowerCase().includes("anywhere")) {
-              return "Worldwide";
-            }
-            const parts = loc.split(",");
-            const lastPart = parts[parts.length - 1].trim();
-            return lastPart || loc;
-          }).filter(Boolean));
-          setTotalCountries(uniqueCountries.size);
-        }
+        // Load stats from the database view
+        const stats = await fetchSystemStats();
+        setTotalJobs(stats.active_jobs);
+        setTotalSources(stats.total_sources);
+        setTotalCountries(stats.total_countries);
       } catch (err) {
         console.error("Failed to load data from API, using mock fallback", err);
       }

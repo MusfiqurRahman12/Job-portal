@@ -4,8 +4,7 @@ import { notFound } from "next/navigation";
 import { fetchCompanyBySlug, fetchJobsByCompany, getHoursLeft, getCategoryStyle, slugify } from "@/lib/api";
 import CompanyLogo from "@/components/CompanyLogo";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 86400; // Cache company details for 24 hours
 
 interface PageProps {
   params: Promise<{

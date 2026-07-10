@@ -5,8 +5,8 @@ export async function GET() {
   let jobs: any[] = [];
   
   try {
-    // Fetch up to 100 active non-expired jobs
-    const res = await fetchJobs({ limit: 100 });
+    // Fetch up to 100 active non-expired jobs (with descriptions for RSS)
+    const res = await fetchJobs({ limit: 100, includeDescription: true });
     jobs = res.jobs || [];
   } catch (err) {
     console.error("RSS Feed generation: failed to fetch jobs", err);

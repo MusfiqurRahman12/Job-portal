@@ -2,8 +2,7 @@ import { Metadata } from "next";
 import { fetchCompanyProfiles } from "@/lib/api";
 import CompaniesClient from "./CompaniesClient";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 86400; // Cache companies page for 24 hours
 
 export const metadata: Metadata = {
   title: "Top Global & Remote Companies Hiring Now | FutureTalent",
