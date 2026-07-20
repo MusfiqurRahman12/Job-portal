@@ -198,7 +198,7 @@ func (e *Engine) Run() {
 	processingWg.Add(1)
 	go func() {
 		defer processingWg.Done()
-		const maxJobsToProcess = 30
+		const maxJobsToProcess = 150
 		processedCount := 0
 		var batch []*shared.Job
 		for job := range jobChan {
@@ -243,7 +243,7 @@ func (e *Engine) Run() {
 	processingWg.Add(1)
 	go func() {
 		defer processingWg.Done()
-		const maxNewsToProcess = 5
+		const maxNewsToProcess = 20
 		processedCount := 0
 		var batch []*shared.News
 		for art := range newsChan {
@@ -277,9 +277,9 @@ func (e *Engine) Run() {
 	// Wait for both processing pipelines to complete
 	processingWg.Wait()
 
-	// Run automated article generation pipeline — 2 articles × 4 runs/day = 8 articles/day
+	// Run automated article generation pipeline — 5 articles × 4 runs/day = 20 articles/day
 	if enableArticles {
-		e.GenerateAndSaveDailyArticles(2, articleAuthor, seoFormat)
+		e.GenerateAndSaveDailyArticles(5, articleAuthor, seoFormat)
 	} else {
 		log.Printf("[Settings] ⏸️  Skipping daily article generation (articles disabled).")
 	}
