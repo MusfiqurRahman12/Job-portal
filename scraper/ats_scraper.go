@@ -32,13 +32,11 @@ func (a *AtsScraper) Name() string {
 
 // Curated top-tier fallback companies
 var fallbackLeverCompanies = []string{
-	"hotjar", "vercel", "postman", "clever", "mux", "coder",
-	"linear", "buffer", "gitbook", "tailscale", "bluelightconsulting",
+	"plaid", "hotjar", "docker", "1password", "fly", "anduril",
 }
 
 var fallbackGreenhouseCompanies = []string{
-	"gitlab", "hashicorp", "reddit", "cloudflare", "elastic",
-	"mongodb", "snyk", "vimeo", "auth0", "dbtlabs", "grafana",
+	"gitlab", "twitch", "duolingo", "figma", "airtable", "gusto", "brex", "canonical", "wikimedia", "mattermost", "mongodb", "reddit",
 }
 
 // Custom websites to crawl and parse using AI
@@ -112,8 +110,8 @@ func (a *AtsScraper) Crawl() ([]shared.Job, error) {
 	rand.Shuffle(len(leverSlugs), func(i, j int) { leverSlugs[i], leverSlugs[j] = leverSlugs[j], leverSlugs[i] })
 	rand.Shuffle(len(greenhouseSlugs), func(i, j int) { greenhouseSlugs[i], greenhouseSlugs[j] = greenhouseSlugs[j], greenhouseSlugs[i] })
 
-	// Limit to 5 Lever and 5 Greenhouse companies per cycle to keep runtimes fast and stay inside API guidelines
-	maxBoards := 5
+	// Limit to 8 Lever and 8 Greenhouse companies per cycle to keep runtimes fast and stay inside API guidelines
+	maxBoards := 8
 	if len(leverSlugs) > maxBoards {
 		leverSlugs = leverSlugs[:maxBoards]
 	}

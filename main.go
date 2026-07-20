@@ -71,50 +71,44 @@ func runScrapers(db *scraper.DB, aiService *scraper.AIService) {
 	engine := scraper.NewEngine(db, aiService)
 
 	// Register all job scrapers — each runs concurrently via goroutines
-	engine.AddScraper(scraper.NewWWRScraper())       // We Work Remotely (RSS feed)
-	engine.AddScraper(scraper.NewRemoteOKScraper())   // RemoteOK (JSON API)
-	engine.AddScraper(scraper.NewRemotiveScraper())   // Remotive (JSON API)
-	engine.AddScraper(scraper.NewArbeitnowScraper())  // Arbeitnow (JSON API — remote + hybrid + onsite)
-	engine.AddScraper(scraper.NewFindWorkScraper())   // FindWork.dev (JSON API — remote + hybrid + onsite)
-	engine.AddScraper(scraper.NewJobicyScraper())     // Jobicy (JSON API — remote)
-	engine.AddScraper(scraper.NewAtsScraper(aiService)) // New Search-based direct company website scraper
-	engine.AddScraper(scraper.NewBluedoorScraper())     // Bluedoor Job Postings API scraper
+	engine.AddScraper(scraper.NewWWRScraper())         // We Work Remotely (RSS feed)
+	engine.AddScraper(scraper.NewRemoteOKScraper())     // RemoteOK (JSON API)
+	engine.AddScraper(scraper.NewRemotiveScraper())     // Remotive (JSON API)
+	engine.AddScraper(scraper.NewArbeitnowScraper())    // Arbeitnow (JSON API)
+	engine.AddScraper(scraper.NewJobicyScraper())       // Jobicy (JSON API)
+	engine.AddScraper(scraper.NewAtsScraper(aiService)) // Direct ATS boards direct scraping
+	engine.AddScraper(scraper.NewBluedoorScraper())     // Bluedoor Job Postings API
+	engine.AddScraper(scraper.NewTheMuseScraper())      // TheMuse public API (no key needed, 400K+ jobs pool)
 
-	
-	// New standard RSS Job boards
+	// RSS Job Boards (Active & Verified)
 	engine.AddScraper(scraper.NewRSSJobScraper("Himalayas", "https://himalayas.app/jobs/rss"))
 	engine.AddScraper(scraper.NewRSSJobScraper("Hasjob", "https://hasjob.co/feed"))
 	engine.AddScraper(scraper.NewRSSJobScraper("Jobspresso", "https://jobspresso.co/feed/?post_type=job_listing"))
-	engine.AddScraper(scraper.NewRSSJobScraper("CryptoJobsList", "https://cryptojobslist.com/jobs.rss"))
-	
-	// Expanded RSS sources
-	engine.AddScraper(scraper.NewRSSJobScraper("DailyRemote", "https://dailyremote.com/remote-jobs.rss"))
-	engine.AddScraper(scraper.NewRSSJobScraper("NoDesk", "https://nodesk.co/remote-jobs/index.xml"))
-	engine.AddScraper(scraper.NewRSSJobScraper("WorkingNomads", "https://www.workingnomads.co/jobsfeed"))
-	engine.AddScraper(scraper.NewRSSJobScraper("JustRemote", "https://justremote.co/remote-jobs.rss"))
 	engine.AddScraper(scraper.NewRSSJobScraper("PythonOrg", "https://www.python.org/jobs/feed/rss/"))
 	engine.AddScraper(scraper.NewRSSJobScraper("Dribbble", "https://dribbble.com/jobs.rss"))
-	engine.AddScraper(scraper.NewRSSJobScraper("WorkAnywhere", "https://workanywhere.pro/rss.xml"))
-	engine.AddScraper(scraper.NewRSSJobScraper("RealWorkFromAnywhere", "https://www.realworkfromanywhere.com/rss.xml"))
 	engine.AddScraper(scraper.NewRSSJobScraper("LaraJobs", "https://larajobs.com/feed"))
 	engine.AddScraper(scraper.NewRSSJobScraper("GolangProjects", "https://www.golangprojects.com/rss.xml"))
 	engine.AddScraper(scraper.NewRSSJobScraper("JobsCollider", "https://jobscollider.com/remote-jobs.rss"))
+	engine.AddScraper(scraper.NewRSSJobScraper("WorkAtAStartup", "https://www.workatastartup.com/jobs.rss"))
+	engine.AddScraper(scraper.NewRSSJobScraper("StartupJobs", "https://startup.jobs/rss"))
+	engine.AddScraper(scraper.NewRSSJobScraper("WWR Programming", "https://weworkremotely.com/categories/remote-programming-jobs.rss"))
 
-	// Register all news/blog RSS scrapers — more sources = richer AI rewrite content
+	// Register all news/blog RSS scrapers
 	engine.AddNewsScraper(scraper.NewRSSScraper("TechCrunch", "https://techcrunch.com/feed/"))
 	engine.AddNewsScraper(scraper.NewRSSScraper("Sorry I Was On Mute", "https://sorryonmute.com/feed/"))
-	engine.AddNewsScraper(scraper.NewRSSScraper("The Verge", "https://www.theverge.com/rss/index.xml"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("The Verge", "https://www.theverge.com/rss/index.xml")) // Now parsed as Atom
 	engine.AddNewsScraper(scraper.NewRSSScraper("Wired", "https://www.wired.com/feed/rss"))
 	engine.AddNewsScraper(scraper.NewRSSScraper("MIT Tech Review", "https://www.technologyreview.com/feed/"))
 	engine.AddNewsScraper(scraper.NewRSSScraper("Dev.to", "https://dev.to/feed"))
 	engine.AddNewsScraper(scraper.NewRSSScraper("Fast Company", "https://www.fastcompany.com/technology/rss"))
-	engine.AddNewsScraper(scraper.NewRSSScraper("Harvard Business Review", "https://feeds.hbr.org/harvardbusiness"))
 	engine.AddNewsScraper(scraper.NewRSSScraper("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Google Blog", "https://blog.google/rss/"))
+	engine.AddNewsScraper(scraper.NewRSSScraper("Meta Engineering", "https://engineering.fb.com/feed/"))
 
 	engine.Run()
 	log.Println("✅ Scrape cycle complete")
 
-	// Run database cleanup synchronously to guarantee execution completes in transient environments like GitHub Actions
+	// Run database cleanup synchronously
 	db.RunCleanupSync()
 }
 
