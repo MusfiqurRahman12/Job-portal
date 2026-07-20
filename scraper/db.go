@@ -83,13 +83,12 @@ type ExpiredJobInfo struct {
 
 // CleanExpiredJobs marks jobs as inactive 24 hours after they pass the application window (expires_at) and returns deactivated job details
 func (db *DB) CleanExpiredJobs() ([]ExpiredJobInfo, error) {
-	query := `
-		UPDATE jobs 
-		SET is_active = FALSE 
-		WHERE is_active = TRUE AND expires_at < $1
-		RETURNING id, title, company
+	selectQuery := `
+		SELECT id, title, company
+		FROM jobs
+		WHERE is_active = TRUE AND expires_at < NOW() - INTERVAL '24 hours'
 	`
-	rows, err := db.conn.Query(query, time.Now().Add(-24*time.Hour))
+	rows, err := db.conn.Query(selectQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -103,12 +102,34 @@ func (db *DB) CleanExpiredJobs() ([]ExpiredJobInfo, error) {
 		}
 		jobs = append(jobs, j)
 	}
+
+	if len(jobs) > 0 {
+		updateQuery := `
+			UPDATE jobs
+			SET is_active = FALSE
+			WHERE is_active = TRUE AND expires_at < NOW() - INTERVAL '24 hours'
+		`
+		_, err = db.conn.Exec(updateQuery)
+		if err != nil {
+			log.Printf("[Cleanup] Warning: failed to update is_active flag for expired jobs: %v", err)
+		}
+	}
+
 	return jobs, nil
 }
 
 // DeleteExpiredJobs permanently removes jobs that have been archived for more than 7 days
 // (which corresponds to 8 days total after their application window expires_at passes)
 func (db *DB) DeleteExpiredJobs() (int64, error) {
+	// Clean up outreach queue records that have no associated job or are older than 30 days
+	_, err := db.conn.Exec(`
+		DELETE FROM outreach_queue 
+		WHERE job_id IS NULL OR created_at < $1
+	`, time.Now().Add(-30*24*time.Hour))
+	if err != nil {
+		log.Printf("[Cleanup] Warning: failed to clean up old outreach queue: %v", err)
+	}
+
 	query := `
 		DELETE FROM jobs 
 		WHERE is_active = FALSE AND expires_at < $1

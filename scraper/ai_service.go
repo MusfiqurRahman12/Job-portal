@@ -99,7 +99,7 @@ func (ai *AIService) callGemini(prompt string, generationConfig map[string]inter
 
 		model := os.Getenv("GEMINI_MODEL")
 		if model == "" {
-			model = "gemini-2.5-flash-lite"
+			model = "gemini-2.5-flash"
 		}
 		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, key)
 
